@@ -1,0 +1,21 @@
+[filter "lfs"]
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+[user]
+	name = NorthernScott
+	email = s.drennan@gmail.com
+	[user]
+  signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL3wtyd6HNYr8/jR86ho0rP5pd74oZ+MNjiFPaMukPMk
+
+[gpg]
+  format = ssh
+
+[gpg "ssh"]
+  program = "C:/Users/sdren/AppData/Local/1Password/app/8/op-ssh-sign.exe"
+
+[commit]
+  gpgsign = true
+[credential]
+	helper = "!f() { /root/.vscode-server/bin/38c31bc77e0dd6ae88a4e9cc93428cc27a56ba40/node /tmp/vscode-remote-containers-646f431f-9e8e-42e6-9399-646d0e24730d.js git-credential-helper $*; }; f"

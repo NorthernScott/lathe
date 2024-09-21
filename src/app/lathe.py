@@ -11,11 +11,12 @@ from typing import Generator
 
 import numpy as np
 import typer
-from mylogger import log, std_con
 from rich.logging import RichHandler
 from rich.table import Table
-from terrain import arr_sample_noise, sample_octaves
 from typing_extensions import Annotated
+
+from mylogger import log, std_con
+from terrain import arr_sample_noise, sample_octaves
 from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
 from viz import viz
 

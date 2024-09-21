@@ -1,0 +1,21 @@
+name: lathe
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: app.dockerfile
+    stdin_open: true
+    tty: true
+    container_name: app
+    restart: unless-stopped
+    environment:
+      APP_NAME: "lathe"
+      NODE_ENV: "development"
+      USER: "dev"
+      PASSWORD: "dev"
+      PYTHON_VERSION: 3.12
+    volumes:
+      - type: bind
+        source: ../src/app
+        target: /home/dev/lathe

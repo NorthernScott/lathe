@@ -1,20 +1,8 @@
 {
-  "folders": [
-    {
-      "path": "."
-    }
-  ],
-  "settings": {
-    "name": "lathe",
-    "python.pythonPath": "D:\\miniforge3\\envs\\lathe\\python.exe",
-    "mypy.enabled": false,
-    "mypy.targets": [
-      "./lathe/"
-    ],
-    "python.analysis.exclude": [
-      "/src/outputs",
-      "/old"
-    ],
-    "mypy.runUsingActiveInterpreter": true
-  }
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
 }

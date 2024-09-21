@@ -18,7 +18,9 @@ def generate_plates(elevations, num_plates):
     peak_elevations = elevations[local_max]
 
     # Find the indices of the num_plates highest peaks
-    highest_peaks = np.argpartition(a=peak_elevations, kth=-num_plates, axis=0)[-num_plates:]
+    highest_peaks = np.argpartition(a=peak_elevations, kth=-num_plates, axis=0)[
+        -num_plates:
+    ]
 
     # Create an array of zeros with the same shape as elevations
     plates = np.zeros_like(elevations)
