@@ -2,17 +2,14 @@
 
 
 import json
-from ctypes import c_int64
 from datetime import datetime
 from math import copysign, cos, pi, sin, sqrt
 from pathlib import Path
 
 import numpy as np
-from numba import njit, prange
+from numba import prange
 from numpy.typing import NDArray
-from pyvista import Icosphere, PolyData, axis_rotation, save_meshio
-
-from lathe.mylogger import log
+from pyvista import Icosphere, PolyData, save_meshio
 
 # Mathmatical constants
 RIGHT_ANGLE: float = pi / 2
@@ -70,7 +67,7 @@ def fibonacci_sphere(points: NDArray) -> NDArray:
     samples = points
     # fib_array: NDArray = np.ndarray(shape=(samples, 3), dtype=np.float64)
 
-    for i in range(samples):
+    for i in prange(samples):
         y: float = 1 - (i / float(samples - 1)) * 2  # y goes from 1 to -1
         radius: float = sqrt(1 - y * y)  # radius at y
 
@@ -176,7 +173,6 @@ def rescale(
     return new_array
 
 
-@njit(cache=True)
 def xyz2latlon(x, y, z, r):
     """Convert 3D spatial XYZ coordinates into Latitude and Longitude.
     x -- X coordinate.

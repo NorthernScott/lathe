@@ -11,12 +11,11 @@ from typing import Generator
 
 import numpy as np
 import typer
+from mylogger import log, std_con
 from rich.logging import RichHandler
 from rich.table import Table
+from terrain import sample_octaves
 from typing_extensions import Annotated
-
-from mylogger import log, std_con
-from terrain import arr_sample_noise, sample_octaves
 from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
 from viz import viz
 
@@ -58,7 +57,7 @@ PLATESNUM: int = round(
 
 
 def getPlanetName() -> str:
-    f: TextIOWrapper = open(file="planetnames.json", mode="rt")
+    f: TextIOWrapper = open(file="./src/lathe/planetnames.json", mode="rt")
     data = json.load(fp=f)
     names = data["planetNames"]
 
@@ -174,9 +173,9 @@ def main(
 
     if seed == 0:
         seed_rng: Generator = np.random.default_rng()
-        world_seed: int = seed_rng.integers(low=0, high=999999)
+        world_seed: int = int(seed_rng.integers(low=0, high=999999))
     else:
-        world_seed: int = seed
+        world_seed: int = int(seed)
 
     zrange: float = zmax - zmin
 
@@ -244,25 +243,16 @@ def main(
 
     std_con.print("Generating elevations.\r\n")
 
-    raw_elevations: MeshArray = arr_sample_noise(
-        world_mesh=world_mesh,
-        roughness=INIT_ROUGHNESS,
-        strength=INIT_STRENGTH,
+    raw_elevations: MeshArray = sample_octaves(
+        points=world_mesh.points,
+        octaves=octaves,
+        init_roughness=INIT_ROUGHNESS,
+        init_strength=INIT_STRENGTH,
+        roughness=ROUGHNESS,
+        persistence=PERSISTENCE,
         feature_size=feature_size,
         radius=radius,
-        world_seed=world_seed,
     )
-
-    # raw_elevations: MeshArray = sample_octaves(
-    #     points=world_mesh.points,
-    #     octaves=octaves,
-    #     init_roughness=INIT_ROUGHNESS,
-    #     init_strength=INIT_STRENGTH,
-    #     roughness=ROUGHNESS,
-    #     persistence=PERSISTENCE,
-    #     feature_size=feature_size,
-    #     radius=radius,
-    # )
 
     log.debug(msg="Raw elevations:")
     log.debug(msg=raw_elevations)
@@ -295,8 +285,8 @@ def main(
     # Apply elevation scalars to mesh.
 
     log.debug(msg="Applying elevations.")
-    # world_mesh.points[:, 0] *= elevation_scalars
-    # world_mesh.points[:, 1] *= elevation_scalars
+    world_mesh.points[:, 0] *= elevation_scalars
+    world_mesh.points[:, 1] *= elevation_scalars
     world_mesh.points[:, 2] *= elevation_scalars
     log.debug(msg=world_mesh.points)
     log.debug(msg="")
@@ -304,7 +294,7 @@ def main(
     # Add rescaled elevations (without z_scale factor) to mesh points data.
 
     log.debug(msg="Adding elevations to mesh dataset.")
-    world_mesh.point_data["Elevation"] = rescaled_elevations
+    world_mesh.point_data["Elevations"] = rescaled_elevations
     log.debug(msg="")
 
     log.debug(msg="Mesh Point Data:")

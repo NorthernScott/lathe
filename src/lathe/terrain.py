@@ -2,33 +2,9 @@
 
 
 import numpy as np
+from numba import prange
 import opensimplex as osi
-from numba import jit, njit, prange
 from numpy.typing import NDArray
-
-from .mylogger import log, std_con
-from .osi import noise4array
-from .util import Mesh, MeshArray, Vector
-
-
-def arr_sample_noise(
-    world_mesh: Mesh,
-    roughness: float,
-    strength: float,
-    feature_size: float,
-    radius: int,
-    world_seed: int,
-) -> MeshArray:
-    xcoords: MeshArray = world_mesh.points[:, 0] * roughness
-    ycoords: MeshArray = world_mesh.points[:, 1] * roughness
-    zcoords: MeshArray = world_mesh.points[:, 2] * roughness
-    wcoords: MeshArray = np.full_like(
-        a=xcoords, fill_value=feature_size, dtype=np.float64
-    )
-
-    elevations: MeshArray = noise4array(x=xcoords, y=ycoords, z=zcoords, w=wcoords)
-
-    return elevations
 
 
 def sample_noise(
@@ -38,18 +14,36 @@ def sample_noise(
     rough_verts = points * roughness
 
     for v in prange(len(rough_verts)):
-        elevations[v] = (
-            osi.noise4(
-                x=rough_verts[v][0],
-                y=rough_verts[v][1],
-                z=rough_verts[v][2],
-                w=feature_size,
-            )
-            / feature_size
+        elevations[v] = osi.noise4(
+            x=rough_verts[v][0] / feature_size,
+            y=rough_verts[v][1] / feature_size,
+            z=rough_verts[v][2] / feature_size,
+            w=1 / feature_size,
         )
 
     # ?: Adding +1 to elevation moves negative values in the 0-1 range. Multiplying by 0.5 drags any values > 1 back into the 0-1 range. I'm not sure if multiplying by the radius is the proper thing to do in my next implementation.
 
+    return (elevations + 1) * 0.5 * strength * radius
+
+
+def v_sample_noise(
+    points: NDArray[np.float64],
+    roughness: float,
+    strength: float,
+    feature_size: float,
+    radius: float,
+) -> NDArray[np.float64]:
+    # Vectorized operations
+    rough_verts = points * roughness
+    scaled_verts = rough_verts / feature_size
+    w_value = 1 / feature_size
+
+    # Vectorized noise computation
+    elevations = osi.noise4(
+        x=scaled_verts[:, 0], y=scaled_verts[:, 1], z=scaled_verts[:, 2], w=w_value
+    )
+
+    # Adjust elevations
     return (elevations + 1) * 0.5 * strength * radius
 
 

@@ -1,8 +1,5 @@
 import json
-from pathlib import Path
 from random import choice
-import pyvista as pv
-from pyvista import examples
 
 
 def getPlanetName() -> str:

@@ -1,3 +1,39 @@
+[tool.poetry]
+name = "lathe"
+version = "0.1.0"
+description = "Procedurally generated spherical worlds."
+authors = ["NorthernScott <stonejester@protonmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/northernscott/lathe"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+opensimplex = "^0.4.5.1"
+pyvista = "^0.44.1"
+pyvistaqt = "^0.11.1"
+typer = "^0.12.5"
+rich = "^13.8.1"
+numba = "^0.60.0"
+numpy = "2.0"
+cmocean = "^4.0.3"
+meshio = "^5.3.5"
+pillow = "^10.4.0"
+imageio = "^2.35.1"
+vtk = "^9.3.1"
+matplotlib = "^3.9.2"
+colorcet = "^3.1.0"
+trame = "^3.6.5"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.6.8"
+pytest = "^8.3.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".bzr",
@@ -32,10 +68,10 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.8
+# Assume Python 3.12
 target-version = "py312"
 
-[lint]
+[too.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
@@ -49,7 +85,7 @@ unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-[format]
+[tool.ruff.format]
 # Like Black, use double quotes for strings.
 quote-style = "double"
 
@@ -75,3 +111,4 @@ docstring-code-format = true
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+

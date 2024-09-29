@@ -2,12 +2,10 @@
 
 # import external dependencies
 import numpy as np
-from numpy.typing import NDArray
 from scipy.ndimage import label
 from scipy.signal import argrelmax
 
 # import internal modules
-from mylogger import std_con, log
 
 
 def generate_plates(elevations, num_plates):
