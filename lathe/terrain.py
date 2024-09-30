@@ -3,10 +3,9 @@
 
 import numpy as np
 import opensimplex as osi
+from mylogger import std_con
 from numba import prange
 from numpy.typing import NDArray
-
-from .mylogger import std_con
 
 
 def sample_noise(
@@ -22,7 +21,6 @@ def sample_noise(
             z=rough_verts[v][2],
             w=1 / feature_size,
         )
-        std_con.print(f"Point: {v} ")
 
     # ?: Adding +1 to elevation moves negative values in the 0-1 range. Multiplying by 0.5 drags any values > 1 back into the 0-1 range. I'm not sure if multiplying by the radius is the proper thing to do in my next implementation.
 

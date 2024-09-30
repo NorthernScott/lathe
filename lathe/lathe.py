@@ -16,16 +16,16 @@ from rich.logging import RichHandler
 from rich.table import Table
 from typing_extensions import Annotated
 
-from .mylogger import log, std_con
-from .terrain import sample_octaves
-from .util import Mesh, MeshArray, create_mesh, now, rescale, save_world
-from .viz import viz
+from mylogger import log, std_con
+from terrain import sample_octaves
+from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
+from viz import viz
 
 # Define globals.
 
 RADIUS: int = 6378100  # Radius of the world in meters. The approximate radius of Earth is 6378100 m.
 FEATURE_SIZE: np.float64 = (
-    RADIUS * 0.5
+    RADIUS * 0.25
 )  # Determines the "coherence" of the random noise; affects the size of discrete landmasses. A good size for Earth-like continents is 0.5× the radius.
 ZMIN: int = round(
     number=-(RADIUS * 0.0015)
@@ -59,7 +59,7 @@ PLATESNUM: int = round(
 
 
 def getPlanetName() -> str:
-    f: TextIOWrapper = open(file="./src/lathe/planetnames.json", mode="rt")
+    f: TextIOWrapper = open(file="./lathe/planetnames.json", mode="rt")
     data = json.load(fp=f)
     names = data["planetNames"]
 
