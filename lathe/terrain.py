@@ -75,17 +75,23 @@ def sample_octaves(
     # Initialize elevations array.
     elevations = np.ones(shape=len(points), dtype=np.float64)
 
-    # NOTE: In my separate-sampling experiment, rough/strength pairs of (1.6, 0.4) (5, 0.2) and (24, 0.02) were good for 3 octaves. The final 3 results were added and then multiplied by 0.4
+    # INFO: In Bob's separate-sampling experiment, rough/strength pairs of (1.6, 0.4) (5, 0.2) and (24, 0.02) were good for 3 octaves. The final 3 results were added and then multiplied by 0.4
+
+    # Pre-compute roughness and strength values for each octave
+    roughness_values = np.array(
+        [(init_roughness * (roughness**i)) / radius for i in range(octaves)]
+    )
+    strength_values = np.array(
+        [(init_strength * (persistence**i)) / radius for i in range(octaves)]
+    )
 
     for i in prange(octaves):
         std_con.print(f"Octave: {i+1} ", "\r\n")
         elevations += sample_noise(
             points=points,
-            roughness=init_roughness / radius,
-            strength=init_strength / radius,
+            roughness=roughness_values[i],
+            strength=strength_values[i],
             radius=radius,
         )
-        init_roughness *= roughness
-        init_strength *= persistence
 
     return elevations
