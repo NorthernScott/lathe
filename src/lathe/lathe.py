@@ -11,13 +11,15 @@ from typing import Generator
 
 import numpy as np
 import typer
-from mylogger import log, std_con
+from numpy.typing import NDArray
 from rich.logging import RichHandler
 from rich.table import Table
-from terrain import sample_octaves
 from typing_extensions import Annotated
-from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
-from viz import viz
+
+from .mylogger import log, std_con
+from .terrain import sample_octaves
+from .util import Mesh, MeshArray, create_mesh, now, rescale, save_world
+from .viz import viz
 
 # Define globals.
 
@@ -33,7 +35,7 @@ ZMAX: int = round(
 )  # The highest elevation in the world, in meters. The highest peak on Earth is approximately 8700 m.
 ZRANGE: float = ZMAX - ZMIN
 ZTILT: float = 23.4  # Used in mapping spherical coordinates to lat-lon coordinates in a Coordinate Reference System (CRS). The present z-axis tilt of the Earth is approximately 23.4 degrees.
-ZSCALE: int = 1  # A scaling factor for elevations to make them visible in the plot.
+ZSCALE: int = 20  # A scaling factor for elevations to make them visible in the plot.
 OCEAN_PERCENT: float = 0.55  # Sets the point of elevation 0 as a relative percent of the range from zmin to zmax during rescaling.
 OCEAN_POINT: float = OCEAN_PERCENT * ZRANGE
 RECURSION: int = 9  # The number of recursions used in creating the icosphere mesh. 9 yields 2,621,442 points and 5,242,880 cells. Surface area of the Earth is approximately 514 million km2.
@@ -262,7 +264,7 @@ def main(
 
     std_con.print("Rescaling elevations.\r\n")
 
-    rescaled_elevations: np.NDArray = rescale(
+    rescaled_elevations: NDArray[np.float64] = rescale(
         elevations=raw_elevations, zmin=zmin, zmax=zmax
     )
 
@@ -275,7 +277,9 @@ def main(
     std_con.print("Applying elevations to mesh.\r\n")
 
     log.debug(msg="Generating elevation scalars.")
-    elevation_scalars: np.NDArray = ((rescaled_elevations * zscale) + radius) / radius
+    elevation_scalars: NDArray[np.float64] = (
+        ((raw_elevations) + radius) / radius
+    ) * zscale
     log.debug(msg="")
 
     log.debug(msg="Elevation Scalars:")
@@ -317,9 +321,9 @@ def main(
     log.info(msg="Starting vizualization.")
     viz(
         world_mesh=world_mesh,
-        scalars="Elevations",
+        # scalars="Elevations",
         radius=radius,
-        zscale=ZSCALE,
+        zscale=zscale,
         zmin=zmin,
         zmax=zmax,
     )

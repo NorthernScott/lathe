@@ -2,9 +2,11 @@
 
 
 import numpy as np
-from numba import prange
 import opensimplex as osi
+from numba import prange
 from numpy.typing import NDArray
+
+from .mylogger import std_con
 
 
 def sample_noise(
@@ -15,35 +17,15 @@ def sample_noise(
 
     for v in prange(len(rough_verts)):
         elevations[v] = osi.noise4(
-            x=rough_verts[v][0] / feature_size,
-            y=rough_verts[v][1] / feature_size,
-            z=rough_verts[v][2] / feature_size,
+            x=rough_verts[v][0],
+            y=rough_verts[v][1],
+            z=rough_verts[v][2],
             w=1 / feature_size,
         )
+        std_con.print(f"Point: {v} ")
 
     # ?: Adding +1 to elevation moves negative values in the 0-1 range. Multiplying by 0.5 drags any values > 1 back into the 0-1 range. I'm not sure if multiplying by the radius is the proper thing to do in my next implementation.
 
-    return (elevations + 1) * 0.5 * strength * radius
-
-
-def v_sample_noise(
-    points: NDArray[np.float64],
-    roughness: float,
-    strength: float,
-    feature_size: float,
-    radius: float,
-) -> NDArray[np.float64]:
-    # Vectorized operations
-    rough_verts = points * roughness
-    scaled_verts = rough_verts / feature_size
-    w_value = 1 / feature_size
-
-    # Vectorized noise computation
-    elevations = osi.noise4(
-        x=scaled_verts[:, 0], y=scaled_verts[:, 1], z=scaled_verts[:, 2], w=w_value
-    )
-
-    # Adjust elevations
     return (elevations + 1) * 0.5 * strength * radius
 
 
@@ -74,7 +56,7 @@ def sample_octaves(
 
     # Initialize elevations array.
 
-    elevations = np.zeros(shape=len(points), dtype=np.float64)
+    elevations = np.ones(shape=len(points), dtype=np.float64)
 
     # NOTE: In my separate-sampling experiment, rough/strength pairs of (1.6, 0.4) (5, 0.2) and (24, 0.02) were good for 3 octaves. The final 3 results were added and then multiplied by 0.4
 
@@ -88,5 +70,6 @@ def sample_octaves(
         )
         init_roughness *= roughness
         init_strength *= persistence
+        std_con.print(f"Octave: {i} ", "\r\n")
 
     return elevations

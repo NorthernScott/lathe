@@ -5,11 +5,10 @@ import logging
 
 # import external dependencies
 import pyvista as pv
-
 # import pyvistaqt as pvqt
 
 
-def viz(world_mesh, scalars, radius, zscale, zmin, zmax):
+def viz(world_mesh, radius, zscale, zmin, zmax):
     logging.debug(msg="Starting viz().")
 
     logging.debug(msg="Setup PyVista plotter.")
@@ -47,17 +46,17 @@ def viz(world_mesh, scalars, radius, zscale, zmin, zmax):
     )
     annotations = {}
 
-    world_mesh.compute_normals(cell_normals=True, point_normals=True, inplace=True)
-    globe_mesh = world_mesh.warp_by_scalar(factor=-50)
+    # world_mesh.compute_normals(cell_normals=True, point_normals=True, inplace=True)
+    # globe_mesh = world_mesh.warp_by_scalar(factor=-50)
 
     pl.add_mesh(
-        globe_mesh,
-        name="Base Terrain",
-        scalars=scalars,
+        world_mesh,
+        name="Global Topography",
+        scalars="Elevations",
         scalar_bar_args=scalar_args,
         show_scalar_bar=True,
         annotations=annotations,
-        style="surface",
+        # style="surface",
         smooth_shading=True,
         show_edges=False,
         edge_color="red",
@@ -65,25 +64,25 @@ def viz(world_mesh, scalars, radius, zscale, zmin, zmax):
         cmap="cmo.topo",
         lighting=True,
         pickable=True,
-        preference="cell",
+        # preference="cell",
     )
 
-    # ocean_shell = pv.ParametricEllipsoid(radius, radius, radius, u_res=300, v_res=300)
+    ocean_shell = pv.ParametricEllipsoid(radius, radius, radius, u_res=300, v_res=300)
 
-    # pl.add_mesh(
-    #     ocean_shell,
-    #     show_edges=False,
-    #     smooth_shading=True,
-    #     color="blue",
-    #     opacity=0.15,
+    pl.add_mesh(
+        ocean_shell,
+        show_edges=False,
+        smooth_shading=True,
+        color="blue",
+        opacity=0.15,
+    )
+
+    # pl.show_bounds(
+    #     grid=False,
+    #     location="back",
+    #     axes_ranges=[zmin, zmax, zmin, zmax, zmin, zmax],
+    #     show_zlabels=True,
     # )
-
-    pl.show_bounds(
-        grid=True,
-        location="back",
-        axes_ranges=[0, 6400, 0, 6400, 0, 6400],
-        show_zlabels=True,
-    )
 
     pl.camera.zoom(1.25)
     pl.enable_terrain_style(mouse_wheel_zooms=True)
