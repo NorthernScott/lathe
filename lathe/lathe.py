@@ -9,6 +9,7 @@ import time
 from io import TextIOWrapper
 from typing import Generator
 
+# import third-party modules
 import numpy as np
 import typer
 from numpy.typing import NDArray
@@ -16,6 +17,7 @@ from rich.logging import RichHandler
 from rich.table import Table
 from typing_extensions import Annotated
 
+# import internal modules
 from mylogger import log, std_con
 from terrain import sample_octaves
 from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
@@ -175,9 +177,9 @@ def main(
 
     if seed == 0:
         seed_rng: Generator = np.random.default_rng()
-        world_seed: int = int(seed_rng.integers(low=0, high=999999))
+        world_seed: int = seed_rng.integers(low=0, high=999999)
     else:
-        world_seed: int = int(seed)
+        world_seed: int = seed
 
     zrange: float = zmax - zmin
 
@@ -188,7 +190,7 @@ def main(
     world_params = {
         "name": name,
         "timestamp": now(),
-        "seed": world_seed,
+        "seed": int(world_seed),
         "radius": radius,
         "feature size": feature_size,
         "recursion": recursion,
@@ -254,6 +256,7 @@ def main(
         persistence=PERSISTENCE,
         feature_size=feature_size,
         radius=radius,
+        seed=world_seed,
     )
 
     log.debug(msg="Raw elevations:")

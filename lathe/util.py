@@ -204,7 +204,7 @@ def save_world(
 
     # TODO: Add in selectors for config format and mesh format.
     config_extension: str = ".json"
-    mesh_extension: str = ".obj"
+    mesh_extension: str = ".vtk"
 
     config_file = Path("./outputs/", filename + config_extension)
     mesh_file = Path("./outputs/", filename + mesh_extension)

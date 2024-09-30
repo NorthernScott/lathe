@@ -24,8 +24,8 @@ def sample_noise(
 
     # ?: Adding +1 to elevation moves negative values in the 0-1 range. Multiplying by 0.5 drags any values > 1 back into the 0-1 range. I'm not sure if multiplying by the radius is the proper thing to do in my next implementation.
 
-    return (elevations + 1) * 0.5 * strength * radius
-
+    # return (elevations + 1) * 0.5 * strength * radius
+    return elevations * strength * radius
 
 def sample_octaves(
     points,
@@ -36,6 +36,7 @@ def sample_octaves(
     persistence,
     feature_size,
     radius,
+    seed,
 ) -> NDArray[np.float64]:
     """Samples multiple octaves of noise to generate elevations.
 
@@ -52,8 +53,10 @@ def sample_octaves(
         Array of elevations.
     """
 
-    # Initialize elevations array.
+    # Initialize noise generator seed.
+    osi.seed(seed)
 
+    # Initialize elevations array.
     elevations = np.ones(shape=len(points), dtype=np.float64)
 
     # NOTE: In my separate-sampling experiment, rough/strength pairs of (1.6, 0.4) (5, 0.2) and (24, 0.02) were good for 3 octaves. The final 3 results were added and then multiplied by 0.4
