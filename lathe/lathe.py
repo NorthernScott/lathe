@@ -7,28 +7,24 @@ import logging
 import random
 import time
 from io import TextIOWrapper
-from typing import Generator
 
 # import third-party modules
 import numpy as np
 import typer
+
+# import internal modules
+from mylogger import err_con, log, std_con
 from numpy.typing import NDArray
 from rich.logging import RichHandler
 from rich.table import Table
-from typing_extensions import Annotated
-
-# import internal modules
-from mylogger import log, std_con
 from terrain import sample_octaves
+from typing_extensions import Annotated
 from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
 from viz import viz
 
 # Define globals.
 
 RADIUS: int = 6378100  # Radius of the world in meters. The approximate radius of Earth is 6378100 m.
-FEATURE_SIZE: np.float64 = (
-    RADIUS * 0.25
-)  # Determines the "coherence" of the random noise; affects the size of discrete landmasses. A good size for Earth-like continents is 0.5× the radius.
 ZMIN: int = round(
     number=-(RADIUS * 0.0015)
 )  # The lowest elevation in the world, in meters. The deepest oceanic trench on Earth is approximately -10,300 m.
@@ -93,12 +89,6 @@ def main(
             help="The radius of the world in meters. (Earth radius is approximately 6378100 m.)"
         ),
     ] = RADIUS,
-    feature_size: Annotated[
-        float,
-        typer.Option(
-            help="Determines the coherence of noise; affects the size of discrete landmasses. A good size for Earth-like continents is approximately 50% of the radius."
-        ),
-    ] = FEATURE_SIZE,
     recursion: Annotated[
         int,
         typer.Option(
@@ -129,7 +119,7 @@ def main(
             help="Sets the global sea level by defining a relative percent of the range from min to max altitude."
         ),
     ] = OCEAN_PERCENT,
-    zscale: Annotated[
+    scale: Annotated[
         int,
         typer.Option(
             help="Sets a scaling factor for elevations to make them visible in the plot. Does not change the actual elevation values."
@@ -175,11 +165,28 @@ def main(
 
     std_con.print("Setting world seed and parameters.\r\n")
 
-    if seed == 0:
-        seed_rng: Generator = np.random.default_rng()
-        world_seed: int = seed_rng.integers(low=0, high=999999)
-    else:
-        world_seed: int = seed
+    try:
+        if seed == 0:
+            world_seed = 0
+        elif seed < 1:
+            world_seed = 0
+            err_con.print(
+                "Seed must be an integer between 1 and 255. Setting to random seed. \r\n"
+            )
+        elif seed > 255:
+            world_seed = 0
+            err_con.print(
+                "Seed must be an integer between 1 and 255. Setting to random seed. \r\n"
+            )
+        else:
+            world_seed = seed
+    except ValueError as e:
+        err_con.print("Seed must be an integer between 1 and 256. \r\n", f"{e}")
+    finally:
+        if world_seed == 0:
+            world_seed_string = str("Random")
+        else:
+            world_seed_string = str(world_seed)
 
     zrange: float = zmax - zmin
 
@@ -190,9 +197,8 @@ def main(
     world_params = {
         "name": name,
         "timestamp": now(),
-        "seed": int(world_seed),
+        "seed": world_seed_string,
         "radius": radius,
-        "feature size": feature_size,
         "recursion": recursion,
         "octaves": octaves,
         "ztilt": ztilt,
@@ -209,18 +215,18 @@ def main(
     params_table.title = "World Parameters"
     params_table.title_style = "bold magenta"
     params_table.add_row("Name", name)
-    params_table.add_row("World Seed", str(object=world_seed))
-    params_table.add_row("Radius", str(object=radius))
-    params_table.add_row("Feature Size", str(object=feature_size))
-    params_table.add_row("Recursion Factor", str(object=recursion))
-    params_table.add_row("Octaves (#)", str(object=octaves))
-    params_table.add_row("Axial Tilt", str(object=ztilt))
-    params_table.add_row("Lowest Elevation", str(object=zmin))
-    params_table.add_row("Highest Elevation", str(object=zmax))
-    params_table.add_row("Elevation Range", str(object=zrange))
-    params_table.add_row("Ocean Percent", str(object=ocean_percent))
-    params_table.add_row("Sea Level", str(object=ocean_point))
-    params_table.add_row("Log Display", str(object=loglevel))
+    params_table.add_row("Timestamp", str(now()))
+    params_table.add_row("World Seed", world_seed_string)
+    params_table.add_row("Radius", str(radius))
+    params_table.add_row("Recursion Factor", str(recursion))
+    params_table.add_row("Octaves (#)", str(octaves))
+    params_table.add_row("Axial Tilt", str(ztilt))
+    params_table.add_row("Lowest Elevation", str(zmin))
+    params_table.add_row("Highest Elevation", str(zmax))
+    params_table.add_row("Elevation Range", str(zrange))
+    params_table.add_row("Ocean Percent", str(ocean_percent))
+    params_table.add_row("Sea Level", str(ocean_point))
+    params_table.add_row("Log Display", str(loglevel))
 
     std_con.print(params_table)
 
@@ -254,7 +260,6 @@ def main(
         init_strength=INIT_STRENGTH,
         roughness=ROUGHNESS,
         persistence=PERSISTENCE,
-        feature_size=feature_size,
         radius=radius,
         seed=world_seed,
     )
@@ -282,7 +287,7 @@ def main(
     log.debug(msg="Generating elevation scalars.")
     elevation_scalars: NDArray[np.float64] = (
         ((raw_elevations) + radius) / radius
-    ) * zscale
+    ) * scale
     log.debug(msg="")
 
     log.debug(msg="Elevation Scalars:")
@@ -326,7 +331,7 @@ def main(
         world_mesh=world_mesh,
         # scalars="Elevations",
         radius=radius,
-        zscale=zscale,
+        zscale=scale,
         zmin=zmin,
         zmax=zmax,
     )
