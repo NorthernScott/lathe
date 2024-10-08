@@ -8,10 +8,12 @@ output/
 
 # Project settings
 .vscode/
+.vscode-server/
 .archive/
 .old/
-.code-workspace
+*.code-workspace
 .obsidian/
+.home
 
 # Numba cache
 *.nbc

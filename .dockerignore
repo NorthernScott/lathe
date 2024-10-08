@@ -1,0 +1,18 @@
+# Exclude Docker files from build context
+.docker/
+.dockerignore
+docker-compose.yml
+Dockerfile
+.home/.pyenv/
+
+# Exclude VS Code workspace file
+**/*.code-workspace
+
+# Exclude Git & GitHub files
+README.md
+LICENCE
+.gitattributes
+.gitconfig
+.gitignore
+.github/
+.git/

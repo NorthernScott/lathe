@@ -8,8 +8,7 @@
 		"python.analysis.extraPaths": [
 			".",
 			"./",
-			"./lathe",
-			"./src",
+			"./src/",
 			"./src/lathe",
 		]
 	}

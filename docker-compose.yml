@@ -2,12 +2,13 @@ name: lathe
 
 services:
   app:
+    image: northernscott/lathe:latest
     build:
-      context: .
-      dockerfile: app.dockerfile
+      context: ..
+      dockerfile: .docker/.
     stdin_open: true
     tty: true
-    container_name: app
+    container_name: lathe-app
     restart: unless-stopped
     environment:
       APP_NAME: "lathe"
@@ -17,5 +18,10 @@ services:
       PYTHON_VERSION: 3.12
     volumes:
       - type: bind
-        source: ../src/app
-        target: /home/dev/lathe
+        source: ../.home
+        target: /home/dev
+    develop:
+      watch:
+      - action: sync
+        path: ../src
+        target: /opt/lathe
