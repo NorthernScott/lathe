@@ -4,10 +4,6 @@
 docker-compose.yml
 Dockerfile
 
-# Exclude build configuration files
-.home/.pyenv/
-**/*password*.txt
-
 # Exclude VS Code workspace file
 **/*.code-workspace
 

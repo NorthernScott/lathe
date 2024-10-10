@@ -6,15 +6,14 @@ __pycache__/
 # Generation results
 output/
 
-# Project settings
+# Project files
 .vscode/
 .vscode-server/
 .archive/
 .old/
 *.code-workspace
 .obsidian/
-.home
-**/*password*.text
+**/*password.txt
 
 # Numba cache
 *.nbc
@@ -144,3 +143,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ruff
+.ruff_cache/

@@ -6,9 +6,11 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-          - APP_NAME=lathe
-          - APP_USER=dev
-          - PYTHON_VERSION=3.12
+        - APP_NAME=lathe
+        - APP_USER=dev
+        - PYTHON_VERSION=3.12
+      secrets:
+        - app_user_password
     # image: northernscott/lathe:latest
     stdin_open: true
     tty: true
@@ -20,12 +22,12 @@ services:
         target: /home/dev
     develop:
       watch:
-      - action: sync
-        path: ../src
-        target: /opt/lathe
+        - action: sync
+          path: ../src
+          target: /opt/lathe
     secrets:
       - app_user_password
 
 secrets:
   app_user_password:
-     file: app_user_password.txt
+    file: app_user_password.txt
