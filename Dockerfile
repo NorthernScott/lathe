@@ -1,5 +1,6 @@
 # Build from debian bookworm image
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim AS baseimage
+SHELL ["/bin/bash", "-c"]
 
 # Set environment variables and arguments
 ARG APP_NAME="lathe"
@@ -14,15 +15,6 @@ ENV PATH="${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:${APP_USER_HOME}/.local/bin:$PAT
 # Create health check
 COPY ["./appHealthCheck.sh", "/bin/appHealthCheck.sh"]
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --start-interval=5s --retries=3 CMD ["bash", "/bin/appHealthCheck.sh"]
-
-# Create user
-RUN --mount=type=secret,id=app_user_password \
-    export APP_USER_PASSWORD=$(cat /run/secrets/app_user_password) \
-    && groupadd -r ${APP_USER} \
-    && useradd -md ${APP_USER_HOME} -s /bin/bash -p ${APP_USER_PASSWORD} -g root -G sudo ${APP_USER}
-
-# Create project directory
-RUN mkdir -p /opt/${APP_NAME}
 
 # Install system packages
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -48,34 +40,29 @@ RUN DEBIAN_FRONTEND=noninteractive \
     nano \
     sudo 
 
-# Load Bash customizations
-SHELL ["/bin/bash", "-c"]
-# USER ${APP_USER}
-COPY --chown=${APP_USER}:${APP_USER} [".bashrc", "${APP_USER_HOME}/"]
+# Create user
+RUN --mount=type=secret,id=app_user_password \
+    export APP_USER_PASSWORD=$(cat /run/secrets/app_user_password) \
+    && echo ${APP_USER_PASSWORD} \
+    && useradd -md ${APP_USER_HOME} -s /bin/bash -p ${APP_USER_PASSWORD} -g root -G sudo ${APP_USER} \
+    && echo "${APP_USER}:${APP_USER_PASSWORD}" | chpasswd
+
+# Copy source files
+COPY --chown=${APP_USER}:root ["src/", "/opt/${APP_NAME}"]
 
 # Install pyenv, Python, and Poetry
-# USER root
+USER ${APP_USER}
 RUN DEBIAN_FRONTEND=noninteractive \
-    && echo "Fetching PyEnv" \
+    && echo "Installing PyEnv" \
     && curl https://pyenv.run | bash \
     && echo "Installing Python" \
     && pyenv install ${PYTHON_VERSION} \
     && echo "Installing Global Python" \
     && pyenv global ${PYTHON_VERSION} \
     && echo "Installing & Configuring Poetry" \
-    && curl -sSL https://install.python-poetry.org | python3 -
+    && curl -sSL https://install.python-poetry.org | python3 - \
+    && poetry config virtualenvs.in-project true \
+    && poetry completions bash >> ${APP_USER_HOME}/.bash_completion 
 
-# Update shell with Poetry
-RUN DEBIAN_FRONTEND=noninteractive \
-    && /root/.local/bin/poetry config virtualenvs.in-project true \
-    && /root/.local/bin/poetry completions bash >> ${APP_USER_HOME}/.bash_completion \
-    && source ${APP_USER_HOME}/.bashrc
-
-# Add project files
-# USER ${APP_USER}
-COPY --chown=${APP_USER}:${APP_USER} ["src/", "/opt/${APP_NAME}"]
-
-# Start and update shell
-USER ${APP_USER}
-WORKDIR ${APP_USER_HOME}
+# Start shell
 ENTRYPOINT ["/bin/bash"]

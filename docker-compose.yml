@@ -15,18 +15,30 @@ services:
     stdin_open: true
     tty: true
     container_name: lathe-app
+    hostname: lathe-app
     restart: unless-stopped
     volumes:
-      - type: bind
-        source: ../.home
-        target: /home/dev
+      - type: volume
+        source: home-data
+        target: /home/dev # /home/<APP_USER> must match the APP_USER build argument.
+    networks:
+      - lathe-bridge
     develop:
       watch:
         - action: sync
           path: ../src
-          target: /opt/lathe
+          target: /opt/lathe # /opt/<APP_NAME> must match the APP_NAME build argument.
     secrets:
       - app_user_password
+
+volumes:
+  home-data:
+    name: "lathe-app-home-data"
+
+networks:
+  lathe-bridge:
+    driver: bridge
+    name: "lathe-bridge"
 
 secrets:
   app_user_password:
