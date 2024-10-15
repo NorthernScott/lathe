@@ -13,7 +13,7 @@ ENV PYENV_ROOT="${APP_USER_HOME}/.pyenv"
 ENV PATH="${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:${APP_USER_HOME}/.local/bin:$PATH"
 
 # Create health check
-COPY ["./appHealthCheck.sh", "/bin/appHealthCheck.sh"]
+COPY [".docker/appHealthCheck.sh", "/bin/appHealthCheck.sh"]
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --start-interval=5s --retries=3 CMD ["bash", "/bin/appHealthCheck.sh"]
 
 # Install system packages
@@ -29,6 +29,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
     libsqlite3-dev \
     wget \
     curl \
+    gpg \
     llvm \
     libncurses5-dev \
     xz-utils \
@@ -39,6 +40,14 @@ RUN DEBIAN_FRONTEND=noninteractive \
     liblzma-dev \
     nano \
     sudo 
+
+# # Install Nvidia Container Toolkit
+# RUN curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+#     && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+#     sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+#     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list \
+#     && apt-get update \
+#     && apt-get install -y nvidia-container-toolkit
 
 # Create user
 RUN --mount=type=secret,id=app_user_password \
@@ -64,5 +73,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
     && poetry config virtualenvs.in-project true \
     && poetry completions bash >> ${APP_USER_HOME}/.bash_completion 
 
+# Install dependencies
+RUN poetry install -C /opt/${APP_NAME}
+
 # Start shell
+WORKDIR /opt/${APP_NAME}
 ENTRYPOINT ["/bin/bash"]

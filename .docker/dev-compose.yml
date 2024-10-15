@@ -3,8 +3,8 @@ name: lathe
 services:
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: .docker/Dockerfile
       args:
         - APP_NAME=lathe
         - APP_USER=dev
@@ -26,8 +26,11 @@ services:
     develop:
       watch:
         - action: sync
-          path: ../src
-          target: /opt/lathe # /opt/<APP_NAME> must match the APP_NAME build argument.
+          path: ./src/lathe
+          target: /opt/lathe/lathe # /opt/<APP_NAME>/lathe must match the APP_NAME build argument.
+        - action: rebuild
+          path: ./;''src/pyproject.toml
+          target: /opt/lathe/pyproject.toml # /opt/<APP_NAME>/pyproject.toml must match the APP_NAME build argument.
     secrets:
       - app_user_password
 

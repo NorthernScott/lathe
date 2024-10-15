@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from math import copysign, cos, pi, sin, sqrt
 from pathlib import Path
+import os
 
 import numpy as np
 from numba import prange
@@ -206,13 +207,16 @@ def save_world(
     config_extension: str = ".json"
     mesh_extension: str = ".vtk"
 
-    config_file = Path("./outputs/", filename + config_extension)
-    mesh_file = Path("./outputs/", filename + mesh_extension)
+    script_dir = os.path.dirname(__file__)
+    config_file_path = os.path.join(script_dir, "filename", config_extension)
+    mesh_file_path = os.path.join(script_dir, "filename", mesh_extension)
+    # config_file = Path("./outputs/", filename + config_extension)
+    # mesh_file = Path("./outputs/", filename + mesh_extension)
 
-    with open(file=config_file, mode="w") as fp:
+    with open(file=config_file_path, mode="w") as fp:
         json.dump(obj=parameters, fp=fp)
         fp.close()
 
-    save_meshio(filename=mesh_file, mesh=mesh)
+    save_meshio(filename=mesh_file_path, mesh=mesh)
 
     return None

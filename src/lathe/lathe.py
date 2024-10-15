@@ -4,6 +4,7 @@
 # import core modules
 import json
 import logging
+import os
 import random
 import time
 from io import TextIOWrapper
@@ -22,8 +23,7 @@ from typing_extensions import Annotated
 from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
 from viz import viz
 
-# Define globals.
-
+# Define globals
 RADIUS: int = 6378100  # Radius of the world in meters. The approximate radius of Earth is 6378100 m.
 ZMIN: int = round(
     number=-(RADIUS * 0.0015)
@@ -57,7 +57,9 @@ PLATESNUM: int = round(
 
 
 def getPlanetName() -> str:
-    f: TextIOWrapper = open(file="./lathe/planetnames.json", mode="rt")
+    script_dir = os.path.dirname(__file__)
+    file_path = os.path.join(script_dir, "planetnames.json")
+    f: TextIOWrapper = open(file=file_path, mode="rt")
     data = json.load(fp=f)
     names = data["planetNames"]
 

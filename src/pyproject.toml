@@ -2,10 +2,64 @@
 name = "lathe"
 version = "0.1.0"
 description = "Procedurally generated spherical worlds."
-authors = ["NorthernScott <stonejester@protonmail.com>"]
+authors = [
+    "NorthernScott <stonejester@protonmail.com>",
+]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/northernscott/lathe"
+homepage = "https://lathe.northernscott.github.io"
+documentation = "https://github.com/NorthernScott/lathe/wiki"
+keywords = [
+    "procedural",
+    "generation",
+    "gis",
+    "spherical",
+    "worlds",
+    "ttrpg",
+    "fantasy",
+    "world",
+    "generator",
+    "3d",
+    "visualization",
+    "geospatial",
+    "data",
+    "science",
+    "geography",
+    "cartography",
+    "mapping",
+    "terrain",
+    "landscape",
+    "environment",
+    "climate",
+    "biome",
+    "ecology",
+    "planet",
+    "earth",
+    "globe",
+    "sphere",
+    "map",
+    "globe",
+    "worldbuilding",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Database",
+    "Topic :: Database :: Front-Ends",
+    "Topic :: Games/Entertainment",
+    "Topic :: Games/Entertainment :: Role-Playing",
+    "Topic :: Games/Entertainment :: Simulation",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Typing :: Typed",
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -111,4 +165,3 @@ docstring-code-format = true
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
-
