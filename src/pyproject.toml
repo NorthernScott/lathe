@@ -62,7 +62,8 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
+django = "^5.1.2"
 opensimplex = "^0.4.5.1"
 pyvista = "^0.44.1"
 pyvistaqt = "^0.11.1"
