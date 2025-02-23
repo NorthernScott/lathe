@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 
-
+# Import core libraries.
 import json
 from datetime import datetime
 from math import copysign, cos, pi, sin, sqrt
 from pathlib import Path
-import os
+# import os
 
+# Import third-party modules.
 import numpy as np
 from numba import prange
 from numpy.typing import NDArray
-from pyvista import Icosphere, PolyData, save_meshio
+from pyvista import Icosphere, PolyData
 
-# Mathmatical constants
+# Import internal modules.
+from mylogger import std_con
+
+# Define mathmatical constants.
 RIGHT_ANGLE: float = pi / 2
 SEMICIRCLE: float = pi
 CIRCLE: float = pi * 2
@@ -20,13 +24,13 @@ PHI: float = 1.61803398874989484820
 SQRT5: float = sqrt(5)
 SEC_IN_MIN = 60.0
 
-# Custom types
+# Define custom types.
 type Mesh = PolyData[int, tuple[float, float, float], int]
 type MeshArray = NDArray[np.float64]
 type Vector = tuple[float, float, float]
 
 
-# Mathematical functions
+# Mathematical functions.
 def fib(n) -> int:
     """Finds an approximation of the fibonacci number for a given ordinal.
 
@@ -53,6 +57,12 @@ def sign(n) -> int:
 
 
 def now() -> str:
+    """
+    Gets the current date and time in a formatted string.
+
+    Returns:
+        str: A formatted string representing the current date and time, with the format %Y-%m-%d-%H-%M-%S.
+    """
     return datetime.now().strftime(format="%Y-%m-%d-%H-%M-%S")
 
 
@@ -84,22 +94,21 @@ def fibonacci_sphere(points: NDArray) -> NDArray:
     return samples
 
 
-def create_mesh(radius, recursion, ztilt):
-    """Initializes a polyhedral mesh, applies axial tilt, and creates point and face arrays.
+def create_mesh(
+    radius: int, recursion: int, origin: tuple[float, float, float] = (0.0, 0.0, 0.0)
+) -> Mesh:
+    """
+    Creates an icosphere mesh object with the specified radius and recursion level (number of vertices and faces).
 
-    Arguments:
-        radius -- _description_
-        recursion -- _description_
-        z_tilt -- _description_
+    Args:
+        radius (int): The radius of the world.
+        recursion (int): he number of recursions used in creating the icosphere mesh.
+        origin (tuple[float, float, float], optional): The origin (centrepoint) of the mesh. Defaults to (0.0, 0.0, 0.0).
 
     Returns:
-        Pyvista mesh object with corresponding numpy array of points. Separate arrays of points and faces.
+        Mesh: Pyvista icosphere mesh object with the specified radius, recursion level, and origin.
     """
-    world_mesh: Mesh = Icosphere(radius=radius, center=(0.0, 0.0, 0.0), nsub=recursion)
-
-    # points = axis_rotation(world_mesh.points, z_tilt, inplace=False, deg=True, axis="z")
-    # points = np.array(world_mesh.points)
-    # faces = np.array(world_mesh.faces)
+    world_mesh: Mesh = Icosphere(radius=radius, center=origin, nsub=recursion)
 
     return world_mesh
 
@@ -174,7 +183,7 @@ def rescale(
     return new_array
 
 
-def xyz2latlon(x, y, z, r):
+def xyz2latlon(x, y, z, r) -> tuple[any, any]:
     """Convert 3D spatial XYZ coordinates into Latitude and Longitude.
     x -- X coordinate.
     y -- Y coordinate.
@@ -195,28 +204,44 @@ def xyz2latlon(x, y, z, r):
 def save_world(
     name: str,
     parameters: dict,
-    mesh: PolyData,
-    mesh_format: str = "obj",
+    mesh: type[PolyData],
     now: str = now(),
 ) -> None:
+    """
+    Saves the world configuration parameters and mesh to the output directory.
+
+    Args:
+        name (str): The world name.
+        parameters (dict): The world configuration parameters.
+        mesh (type[PolyData]): A Pyvista mesh object.
+        now (str, optional): Creation time timestamp.
+
+    Returns:
+        none: No return.
+    """
     Path("./outputs/").mkdir(parents=True, exist_ok=True)
 
     filename = str(object=f"{name}-{now}")
 
     # TODO: Add in selectors for config format and mesh format.
     config_extension: str = ".json"
-    mesh_extension: str = ".vtk"
+    mesh_extension: str = ".ply"
 
-    script_dir = os.path.dirname(__file__)
-    config_file_path = os.path.join(script_dir, "filename", config_extension)
-    mesh_file_path = os.path.join(script_dir, "filename", mesh_extension)
-    # config_file = Path("./outputs/", filename + config_extension)
-    # mesh_file = Path("./outputs/", filename + mesh_extension)
+    # TODO: Implement os.path logic.
+    # script_dir = os.path.dirname(__file__)
+    # config_file_path = os.path.join(script_dir, filename, config_extension)
+    # mesh_file_path = os.path.join(script_dir, filename, mesh_extension)
+    config_file = Path("./outputs/", filename + config_extension)
+    mesh_file = Path("./outputs/", filename + mesh_extension)
 
-    with open(file=config_file_path, mode="w") as fp:
+    # Save the world configuration parameters to a JSON file.
+    with open(file=config_file, mode="w") as fp:
         json.dump(obj=parameters, fp=fp)
         fp.close()
 
-    save_meshio(filename=mesh_file_path, mesh=mesh)
+    # Save the mesh to a file.
+    mesh.save(filename=mesh_file, binary=True, texture=None, recompute_normals=True)
+
+    std_con.print(f"Saved world as {filename}.\r\n")
 
     return None

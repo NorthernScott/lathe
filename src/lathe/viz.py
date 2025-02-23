@@ -1,17 +1,38 @@
 # -*- coding: utf-8 -*-
 
-# import core modules
+# import core libraries.
 import logging
 
-# import external dependencies
+# import third-party modules.
 import pyvista as pv
-# import pyvistaqt as pvqt
 
 
-def viz(world_mesh, radius, zscale, zmin, zmax):
-    logging.debug(msg="Starting viz().")
+def viz(
+    mesh: type[pv.PolyData],
+    radius: int,
+    zscale: int,
+    zmin: int,
+    zmax: int,
+    scalars: type[pv.PolyData.point_data],
+    name: str,
+) -> None:
+    """
+    Use PyVista to visualize the terrain mesh..
 
-    logging.debug(msg="Setup PyVista plotter.")
+    Args:
+        mesh (type[pv.PolyData]): The terrain mesh to visualize.
+        radius (int): The radius of the world.
+        zscale (int): The scale factor by which to exaggerate the terrain.
+        zmin (int): The minimum scaled elevation value.
+        zmax (int): The maximum scaled elevation value.
+        scalars (type[pv.PolyData.point_data]): An array of scalar values used to color the mesh.
+        name (str): The name of the world.
+
+    Returns:
+       None: Returns nothing.
+    """
+
+    # Set up the PyVista plotter.
 
     pv.plotter._ALL_PLOTTERS.clear()
 
@@ -20,15 +41,13 @@ def viz(world_mesh, radius, zscale, zmin, zmax):
     pv.global_theme.cmap = "topo"
     pv.global_theme.lighting = False
 
-    # colour_map = "terrain"
+    # Instatiate the plotter object.
 
-    logging.debug(msg="Instantiate plotter.")
     pl = pv.Plotter(notebook=False)
-    # pl = pvqt.BackgroundPlotter(notebook=False)
     pl.enable_anti_aliasing()
     pl.enable_hidden_line_removal(all_renderers=True)
 
-    logging.debug(msg="Create dictionary of parameters to control the scalar bar.")
+    # Create dictionary of parameters to control the scalar bar.
 
     scalar_args = dict(
         interactive=False,
@@ -47,16 +66,21 @@ def viz(world_mesh, radius, zscale, zmin, zmax):
     annotations = {}
 
     # world_mesh.compute_normals(cell_normals=True, point_normals=True, inplace=True)
-    # globe_mesh = world_mesh.warp_by_scalar(factor=-50)
+
+    # Apply global scale factor to the mesh, to exaggerate the terrain.
+
+    mesh = mesh.warp_by_scalar(factor=-zscale, inplace=False)
+
+    # Add the world mesh to the plotter.
 
     pl.add_mesh(
-        world_mesh,
-        name="Global Topography",
-        scalars="Elevations",
+        mesh,
+        name=name,
+        scalars=scalars,
         scalar_bar_args=scalar_args,
         show_scalar_bar=True,
         annotations=annotations,
-        # style="surface",
+        style="surface",
         smooth_shading=True,
         show_edges=False,
         edge_color="red",
@@ -64,7 +88,7 @@ def viz(world_mesh, radius, zscale, zmin, zmax):
         cmap="cmo.topo",
         lighting=True,
         pickable=True,
-        # preference="cell",
+        preference="cell",
     )
 
     ocean_shell = pv.ParametricEllipsoid(radius, radius, radius, u_res=300, v_res=300)
@@ -77,20 +101,12 @@ def viz(world_mesh, radius, zscale, zmin, zmax):
         opacity=0.15,
     )
 
-    # pl.show_bounds(
-    #     grid=False,
-    #     location="back",
-    #     axes_ranges=[zmin, zmax, zmin, zmax, zmin, zmax],
-    #     show_zlabels=True,
-    # )
-
     pl.camera.zoom(1.25)
     pl.enable_terrain_style(mouse_wheel_zooms=True)
 
     logging.info("Plot output.")
 
-    # pl.export_html('pv.html')
-
-    # pl.app.exec_()
     pl.render()
     pl.show()
+
+    return None

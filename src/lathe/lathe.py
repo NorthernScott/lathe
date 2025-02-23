@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-
-# import core modules
+# import core libraries.
 import json
 import logging
 import os
@@ -14,7 +13,7 @@ import numpy as np
 import typer
 
 # import internal modules
-from mylogger import err_con, log, std_con
+from mylogger import err_con, std_con
 from numpy.typing import NDArray
 from rich.logging import RichHandler
 from rich.table import Table
@@ -23,7 +22,7 @@ from typing_extensions import Annotated
 from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
 from viz import viz
 
-# Define globals
+# Define global defaults.
 RADIUS: int = 6378100  # Radius of the world in meters. The approximate radius of Earth is 6378100 m.
 ZMIN: int = round(
     number=-(RADIUS * 0.0015)
@@ -79,7 +78,9 @@ def main(
     ],
     save: Annotated[
         bool,
-        typer.Option(help="Sets whether the world data is saved to an output file."),
+        typer.Option(
+            help="Sets whether the mesh and world data are saved to output files."
+        ),
     ] = False,
     seed: Annotated[
         int,
@@ -118,7 +119,7 @@ def main(
     ocean_percent: Annotated[
         float,
         typer.Option(
-            help="Sets the global sea level by defining a relative percent of the range from min to max altitude."
+            help="Sets the global sea level by defining a relative percent of the range from min to max elevation."
         ),
     ] = OCEAN_PERCENT,
     scale: Annotated[
@@ -129,20 +130,40 @@ def main(
     ] = ZSCALE,
     octaves: Annotated[
         int,
-        typer.Option(help="Sets the number of octaves to use for noise sampling."),
+        typer.Option(
+            help='Sets the number of octaves to use for noise sampling. More octaves create more "complexity."'
+        ),
     ] = OCTAVES,
     loglevel: Annotated[
         str, typer.Option(help="Sets the verbosity of the logger.")
     ] = LOGLEVEL,
     platesnum: Annotated[
-        int, typer.Option(help="Sets the number of tectonic plates to create.")
+        int,
+        typer.Option(
+            help="Sets the number of tectonic plates to create. --Not currently in use.--"
+        ),
     ] = PLATESNUM,
 ) -> None:
-    """A program to procedurally generate worlds.
+    """
+    Main function for the Lathe program. Generates a 3D mesh of a planet, applies elevations, and visualizes the result.
+
+    Args:
+        name (Annotated[ str, typer.Argument, optional): A name for the world. If one is not provided, a random name will be set. Defaults to a random value provided by the getPlanetName() function.
+        save (Annotated[ bool, typer.Option, optional): Sets whether the mesh and world data are saved to output files. Defaults to False.
+        seed (Annotated[ int, typer.Option, optional): The world seed to be used. Defaults to 0, which triggers selection of a random integer.
+        radius (Annotated[ int, typer.Option, optional): The radius of the world in meters. (Earth radius is approximately 6378100 m.) Defaults to the value of RADIUS.
+        recursion (Annotated[ int, typer.Option, optional): The number of recursions used in creating the icosphere mesh. '9' yields 2,621,442 points and 5,242,880 cells. The surface area of the Earth is approximately 514 million km2. Defaults to the value of RECURSION.
+        ztilt (Annotated[ float, typer.Option, optional): Controls the z-axis tilt of the planet. The Earth's axial tilt is (currently) approximately 23.4 degrees. Defaults to ZTILT.
+        zmin (Annotated[ int, typer.Option, optional): The lowest elevation value on the planet. The deepest oceanic trench on Earth is approximately -10300 m. Defaults to ZMIN.
+        zmax (Annotated[ int, typer.Option, optional): The highest elevation value on the planet. The highest peak on Earth is approximately 8700 m. Defaults to ZMAX.
+        ocean_percent (Annotated[ float, typer.Option, optional): Sets the global sea level by defining a relative percent of the range from min to max elevation. Defaults to OCEAN_PERCENT.
+        scale (Annotated[ int, typer.Option, optional): Sets a scaling factor for elevations to make them visible in the plot. Does not change the actual elevation values. Defaults to ZSCALE.
+        octaves (Annotated[ int, typer.Option, optional): Sets the number of octaves to use for noise sampling. More octaves create more "complexity." Defaults to OCTAVES.
+        loglevel (Annotated[ str, typer.Option, optional): Sets the verbosity of the logger. Defaults to LOGLEVEL.
+        platesnum (Annotated[ int, typer.Option, optional): Sets the number of tectonic plates to create. --Not currently in use.-- Defaults to PLATESNUM.
 
     Returns:
-
-        A 3D icosphere mesh with elevation data provided in cartesian coordinates.
+        None.
     """
 
     # Setup logger.
@@ -154,14 +175,7 @@ def main(
         handlers=[RichHandler(rich_tracebacks=True, markup=True)],
     )
 
-    log.debug(msg="Initialize logger.")
-
-    log.debug(msg="Initialize timer.")
     timer_start: float = time.perf_counter()
-
-    # Begin generation.
-
-    std_con.print("Beginning terrain noise generation.\r\n")
 
     # Set world seed and parameters.
 
@@ -173,17 +187,17 @@ def main(
         elif seed < 1:
             world_seed = 0
             err_con.print(
-                "Seed must be an integer between 1 and 255. Setting to random seed. \r\n"
+                "Seed must be an integer between 1 and 255. Setting to random seed.\r\n"
             )
         elif seed > 255:
             world_seed = 0
             err_con.print(
-                "Seed must be an integer between 1 and 255. Setting to random seed. \r\n"
+                "Seed must be an integer between 1 and 255. Setting to random seed.\r\n"
             )
         else:
             world_seed = seed
     except ValueError as e:
-        err_con.print("Seed must be an integer between 1 and 256. \r\n", f"{e}")
+        err_con.print(f"Seed {e} is not an integer between 1 and 256.\r\n")
     finally:
         if world_seed == 0:
             world_seed_string = str("Random")
@@ -239,17 +253,13 @@ def main(
 
     std_con.print("Creating world mesh.\r\n")
 
-    world_mesh: Mesh = create_mesh(radius=radius, recursion=recursion, ztilt=ztilt)
+    world_mesh: Mesh = create_mesh(radius=radius, recursion=recursion)
 
-    std_con.print(world_mesh, "\r\n")
+    std_con.print(f"World Mesh:\r\n{world_mesh}\r\n")
 
-    log.debug(msg="Points Array:")
-    log.debug(msg=world_mesh.points)
-    log.debug(msg="")
+    std_con.print(f"Sample of Points Array:\r\n{world_mesh.points}\r\n")
 
-    log.debug(msg="Faces Array:")
-    log.debug(msg=world_mesh.faces)
-    log.debug(msg="")
+    std_con.print(f"Sample of Faces Array:\r\n{world_mesh.faces}\r\n")
 
     # Generate elevations.
 
@@ -265,80 +275,77 @@ def main(
         radius=radius,
         seed=world_seed,
     )
+    std_con.print(f"Sample of Raw Elevations:\r\n {raw_elevations} \r\n")
 
-    log.debug(msg="Raw elevations:")
-    log.debug(msg=raw_elevations)
-    log.debug(msg="")
+    # Generate elevation scalars.
+
+    std_con.print("Applying elevations to mesh.\r\n")
+
+    elevation_scalars: NDArray[np.float64] = ((raw_elevations) + radius) / radius
+
+    std_con.print(f"Sample of Elevation Scalars:\r\n {elevation_scalars} \r\n")
+
+    world_mesh.points[:, 0] *= elevation_scalars
+    world_mesh.points[:, 1] *= elevation_scalars
+    world_mesh.points[:, 2] *= elevation_scalars
+
+    std_con.print(f"Sample of Modified Points Array:\r\n {world_mesh.points} \r\n")
 
     # Rescale elevations.
 
-    std_con.print("Rescaling elevations.\r\n")
+    std_con.print(f"Rescaling elevations within range {zmin} to {zmax}.\r\n")
 
     rescaled_elevations: NDArray[np.float64] = rescale(
         elevations=raw_elevations, zmin=zmin, zmax=zmax
     )
 
-    log.debug(msg="Rescaled Elevations:")
-    log.debug(msg=rescaled_elevations)
-    log.debug(msg="")
+    std_con.print(f"Sample of Rescaled Elevations:\r\n {rescaled_elevations} \r\n")
 
-    # Create elevation scalars including a z_scale factor to make elevations visible.
+    # Add rescaleq elevations to mesh as scalar dataset.
 
-    std_con.print("Applying elevations to mesh.\r\n")
+    std_con.print("Adding rescaled elevations to mesh as scalar dataset.\r\n")
 
-    log.debug(msg="Generating elevation scalars.")
-    elevation_scalars: NDArray[np.float64] = (
-        ((raw_elevations) + radius) / radius
-    ) * scale
-    log.debug(msg="")
-
-    log.debug(msg="Elevation Scalars:")
-    log.debug(msg=elevation_scalars)
-    log.debug(msg="")
-
-    # Apply elevation scalars to mesh.
-
-    log.debug(msg="Applying elevations.")
-    world_mesh.points[:, 0] *= elevation_scalars
-    world_mesh.points[:, 1] *= elevation_scalars
-    world_mesh.points[:, 2] *= elevation_scalars
-    log.debug(msg=world_mesh.points)
-    log.debug(msg="")
-
-    # Add rescaled elevations (without z_scale factor) to mesh points data.
-
-    log.debug(msg="Adding elevations to mesh dataset.")
     world_mesh.point_data["Elevations"] = rescaled_elevations
-    log.debug(msg="")
 
-    log.debug(msg="Mesh Point Data:")
-    log.debug(msg=world_mesh.point_data)
-    log.debug(msg="")
+    std_con.print(
+        f"Sample of Elevations Dataset:\r\n {world_mesh.point_data['Elevations']} \r\n"
+    )
 
-    timer_end: float = time.perf_counter()
-    timer: float = timer_end - timer_start
+    # Clock world generation time.
 
-    std_con.print(f"Terrain generated in {timer:0.4f} seconds.\r\n")
+    gen_timer_end: float = time.perf_counter()
+    gen_timer: float = gen_timer_end - timer_start
 
-    # Save routine. Checks if 'outputs' dir exists and creates if not.
+    std_con.print(f"Terrain generated in {gen_timer:0.4f} seconds.\r\n")
+
+    # Save mesh and world data.
 
     if save:
-        std_con.print("Saving world config.\r\n")
+        std_con.print("Saving world.\r\n")
+
         save_world(name=name, parameters=world_params, mesh=world_mesh)
+
+        save_timer_end: float = time.perf_counter()
+        save_timer: float = save_timer_end - gen_timer_end
+
+        std_con.print(f"World saved in {save_timer:0.4f} seconds.\r\n")
 
     # Visualization.
 
-    log.info(msg="Starting vizualization.")
+    std_con.print("Starting visualization.\r\n")
+    std_con.print("Close visualization window to end program.\r\n")
+
     viz(
-        world_mesh=world_mesh,
-        # scalars="Elevations",
+        mesh=world_mesh,
+        name=name,
+        scalars="Elevations",
         radius=radius,
         zscale=scale,
         zmin=zmin,
         zmax=zmax,
     )
 
-    log.debug(msg="Done main thread.")
+    std_con.print("Done.\r\n")
 
     return None
 
