@@ -193,11 +193,11 @@ def xyz2latlon(mesh: PolyData) -> MeshArray:
     Returns:
         MeshArray: A NumPy array with shape (,3) and dtype of np.float64, containing the spherical coordinates in degrees (latitude, longitude, radius).
     """
-    r, lat, lon = np.degrees(
-        c2s(mesh.points[:, 0], mesh.points[:, 1], mesh.points[:, 2])
-    )
+    r, phi, theta = c2s(mesh.points[:, 0], mesh.points[:, 1], mesh.points[:, 2])
+    lat = np.degrees(phi)
+    lon = np.degrees(theta)
 
-    coords: MeshArray = np.column_stack((lat, lon, r))
+    coords: MeshArray = np.column_stack((lat, lon))
 
     std_con.print(f"Sample of Lat-Lon Coordinates:\r\n {coords} \r\n")
 

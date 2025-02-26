@@ -5,6 +5,7 @@ import logging
 
 # import third-party modules.
 import pyvista as pv
+import cmocean as cmo  # noqa: F401 # HACK: Module is called via PyVista, identified by a string (cmap="cmo.topo") in the primary add_mesh call..
 
 
 def viz(
@@ -38,8 +39,7 @@ def viz(
 
     pv.set_plot_theme("dark")
     pv.global_theme.anti_aliasing = "ssaa"
-    pv.global_theme.cmap = "topo"
-    pv.global_theme.lighting = False
+    pv.global_theme.lighting = True
 
     # Instatiate the plotter object.
 
@@ -91,15 +91,17 @@ def viz(
         preference="cell",
     )
 
-    ocean_shell = pv.ParametricEllipsoid(radius, radius, radius, u_res=300, v_res=300)
+    # NOTE: The ocean shell is not currently used in the visualization. Seems to just wash out the colours of the terrain and isn't very useful.
+    # Add the ocean shell to the plotter.
+    # ocean_shell = pv.ParametricEllipsoid(radius, radius, radius, u_res=300, v_res=300)
 
-    pl.add_mesh(
+    """ pl.add_mesh(
         ocean_shell,
         show_edges=False,
         smooth_shading=True,
         color="blue",
         opacity=0.15,
-    )
+    ) """
 
     pl.camera.zoom(1.25)
     pl.enable_terrain_style(mouse_wheel_zooms=True)

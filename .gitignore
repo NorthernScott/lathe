@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Generation results
-output/
+outputs/
 
 # Project files
 .vscode/
