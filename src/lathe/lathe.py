@@ -11,15 +11,15 @@ from io import TextIOWrapper
 # import third-party modules
 import numpy as np
 import typer
-
-# import internal modules
-from mylogger import err_con, std_con
+from typing_extensions import Annotated
 from numpy.typing import NDArray
 from rich.logging import RichHandler
 from rich.table import Table
+
+# import internal modules
+from mylogger import err_con, std_con
 from terrain import sample_octaves
-from typing_extensions import Annotated
-from util import Mesh, MeshArray, create_mesh, now, rescale, save_world
+from util import Mesh, MeshArray, create_mesh, now, rescale, save_world, xyz2latlon
 from viz import viz
 
 # Define global defaults.
@@ -311,12 +311,31 @@ def main(
         f"Sample of Elevations Dataset:\r\n {world_mesh.point_data['Elevations']} \r\n"
     )
 
-    # Clock world generation time.
+    # Display world generation time.
 
     gen_timer_end: float = time.perf_counter()
     gen_timer: float = gen_timer_end - timer_start
 
     std_con.print(f"Terrain generated in {gen_timer:0.4f} seconds.\r\n")
+
+    # XYZ to Lat-Lon conversion.
+
+    std_con.print("Converting XYZ to Lat-Lon coordinates.\r\n")
+
+    coords = xyz2latlon(mesh=world_mesh)
+
+    std_con.print("Adding lat-lon coordinates to mesh as dataset.\r\n")
+
+    world_mesh.point_data["LatLon"] = coords
+
+    std_con.print(
+        f"Sample of LatLon Dataset:\r\n {world_mesh.point_data['LatLon']} \r\n"
+    )
+
+    latlon_timer_end: float = time.perf_counter()
+    latlon_timer: float = latlon_timer_end - gen_timer_end
+
+    std_con.print(f"Lat-Lon coordinates generated in {latlon_timer:0.4f} seconds.\r\n")
 
     # Save mesh and world data.
 

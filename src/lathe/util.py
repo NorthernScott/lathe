@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 from numba import prange
 from numpy.typing import NDArray
-from pyvista import Icosphere, PolyData
+from pyvista import Icosphere, PolyData, cartesian_to_spherical as c2s
 
 # Import internal modules.
 from mylogger import std_con
@@ -183,22 +183,25 @@ def rescale(
     return new_array
 
 
-def xyz2latlon(x, y, z, r) -> tuple[any, any]:
-    """Convert 3D spatial XYZ coordinates into Latitude and Longitude.
-    x -- X coordinate.
-    y -- Y coordinate.
-    z -- Z coordinate.
-    r -- World radius."""
-    # Old method; will output NaNs if (Z/R) > 1 or (Z/R) < -1
-    # lat = np.degrees(np.arcsin(z / r))
+def xyz2latlon(mesh: PolyData) -> MeshArray:
+    """
+    Converts XYZ coordinates to spherical coordinates using the PyVista Cartesian-to-Spherical function, and then to radius and degrees using the Numpy.degrees function.
 
-    # Constrain the value to -1 to 1 before doing arcsin
-    lat = np.degrees(np.arcsin(min(max((z / r), -1), 1)))
-    lon = np.degrees(np.arctan2(y, x))
+    Args:
+        mesh (PolyData): The Pyvista mesh object.
 
-    #    lat = math.asin(z / r)
-    #    lon = math.atan2(y, x)
-    return (lat, lon)
+    Returns:
+        MeshArray: A NumPy array with shape (,3) and dtype of np.float64, containing the spherical coordinates in degrees (latitude, longitude, radius).
+    """
+    r, lat, lon = np.degrees(
+        c2s(mesh.points[:, 0], mesh.points[:, 1], mesh.points[:, 2])
+    )
+
+    coords: MeshArray = np.column_stack((lat, lon, r))
+
+    std_con.print(f"Sample of Lat-Lon Coordinates:\r\n {coords} \r\n")
+
+    return coords
 
 
 def save_world(

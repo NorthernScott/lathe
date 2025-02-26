@@ -3,7 +3,7 @@
 
 import numpy as np
 import opensimplex as osi
-from mylogger import err_con, std_con
+from mylogger import std_con
 from numba import prange
 from numpy.typing import NDArray
 
