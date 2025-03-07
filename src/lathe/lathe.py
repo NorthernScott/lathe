@@ -1,87 +1,85 @@
-# -*- coding: utf-8 -*-
-
-# import core libraries.
 import json
 import logging
-import os
 import random
 import time
 from io import TextIOWrapper
+from pathlib import Path
+from typing import TYPE_CHECKING, Annotated
 
-# import third-party modules
 import numpy as np
+import pyvista as pv
 import typer
-from typing_extensions import Annotated
-from numpy.typing import NDArray
+from mylogger import err_con, std_con
 from rich.logging import RichHandler
 from rich.table import Table
-
-# import internal modules
-from mylogger import err_con, std_con
 from terrain import sample_octaves
 from util import Mesh, MeshArray, create_mesh, now, rescale, save_world, xyz2latlon
 from viz import viz
 
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
 # Define global defaults.
-RADIUS: int = 6378100  # Radius of the world in meters. The approximate radius of Earth is 6378100 m.
+RADIUS: int = 6378100  # Radius of the world in meters.
 ZMIN: int = round(
-    number=-(RADIUS * 0.0015)
-)  # The lowest elevation in the world, in meters. The deepest oceanic trench on Earth is approximately -10,300 m.
+    number=-(RADIUS * 0.0015),
+)  # The lowest elevation in the world, in meters.
 ZMAX: int = round(
-    number=RADIUS * 0.0015
-)  # The highest elevation in the world, in meters. The highest peak on Earth is approximately 8700 m.
+    number=RADIUS * 0.0015,
+)  # The highest elevation in the world, in meters.
 ZRANGE: float = ZMAX - ZMIN
-ZTILT: float = 23.4  # Used in mapping spherical coordinates to lat-lon coordinates in a Coordinate Reference System (CRS). The present z-axis tilt of the Earth is approximately 23.4 degrees.
+ZTILT: float = 23.4  # Used in mapping spherical coordinates to lat-lon coordinates.
 ZSCALE: int = 20  # A scaling factor for elevations to make them visible in the plot.
-OCEAN_PERCENT: float = 0.55  # Sets the point of elevation 0 as a relative percent of the range from zmin to zmax during rescaling.
+OCEAN_PERCENT: float = 0.55  # Sets the point of elevation 0 relative to the ZRANGE.
 OCEAN_POINT: float = OCEAN_PERCENT * ZRANGE
-RECURSION: int = 9  # The number of recursions used in creating the icosphere mesh. 9 yields 2,621,442 points and 5,242,880 cells. Surface area of the Earth is approximately 514 million km2.
-OCTAVES: int = 8  # Sets the number of iterations to use for noise sampling, resulting in a more complex output.
+RECURSION: int = 9  # The level of detail in the mesh. Values above 9 may be slow to render.
+OCTAVES: int = 8  # Sets the number of iterations to use for noise sampling.
 LOGLEVEL: str = "WARNING"
 LOGFORMAT: str = "\r\n%(message)s"
-INIT_ROUGHNESS: float = (
-    1.5  # Sets the initial roughness (frequency) of the first octave of noise.
-)
-INIT_STRENGTH: float = (
-    0.4  # Sets the initial strength (amplitude) of the first octave of noise.
-)
+INIT_ROUGHNESS: float = 1.5  # Sets the initial roughness (frequency) of the first octave of noise.
+INIT_STRENGTH: float = 0.4  # Sets the initial strength (amplitude) of the first octave of noise.
 ROUGHNESS: float = 2.5  # Multiply roughness by this much per octave.
 PERSISTENCE: float = 0.5  # Multiply strength by this much per octave.
 PLATESNUM: int = round(
-    number=RADIUS / 500_000
-)  # The number of tectonic plates to generate. The Earth has approximately 12 major plates.
+    number=RADIUS / 500_000,
+)  # The number of tectonic plates to generate.
+
+SEED_MIN = 1  # Seed must be a positive integer between 1 and 255.
+SEED_MAX = 255  # Seed must be a positive integer between 1 and 255.
 
 
 # Setup functions.
-
-
 def getPlanetName() -> str:
-    script_dir = os.path.dirname(__file__)
-    file_path = os.path.join(script_dir, "planetnames.json")
-    f: TextIOWrapper = open(file=file_path, mode="rt")
-    data = json.load(fp=f)
-    names = data["planetNames"]
+    """Return a random planet name from planetnames.json."""
+    file_path = Path(Path(__file__).parent, "planetnames.json")
+    with TextIOWrapper, Path.open(file=file_path) as f:
+        data = json.load(fp=f)
+        names = data["planetNames"]
 
     return random.choice(seq=names)
 
 
 # Main thread.
-
-
-def main(
+def main(  # noqa: PLR0913, PLR0915
     name: Annotated[
         str,
         typer.Argument(
             default_factory=getPlanetName,
-            help="A name for the world. If one is not provided, a random name will be set.",
+            help="A name for the world. If not provided, a random name is chosen.",
         ),
     ],
     save: Annotated[
         bool,
         typer.Option(
-            help="Sets whether the mesh and world data are saved to output files."
+            help="Sets whether the mesh and world data are saved to output files.",
         ),
     ] = False,
+    visualize: Annotated[
+        bool,
+        typer.Option(
+            help="Sets whether the world is visualized in a 3D plot.",
+        ),
+    ] = True,
     seed: Annotated[
         int,
         typer.Option(help="The world seed to be used. Defaults to a random integer."),
@@ -89,83 +87,84 @@ def main(
     radius: Annotated[
         int,
         typer.Option(
-            help="The radius of the world in meters. (Earth radius is approximately 6378100 m.)"
+            help="The radius of the world in meters. (Earth ~= 6378100 m.)",
         ),
     ] = RADIUS,
     recursion: Annotated[
         int,
         typer.Option(
-            help="The number of recursions used in creating the icosphere mesh. 9 yields 2,621,442 points and 5,242,880 cells. The surface area of the Earth is approximately 514 million km2"
+            help="The detail level of the mesh. More than 9 may cause slow rendering.",
         ),
     ] = RECURSION,
     ztilt: Annotated[
         float,
         typer.Option(
-            help="Controls the z-axis tilt of the planet. The Earth's axial tilt is (currently) approximately 23.4 degrees."
+            help="Controls the z-axis tilt of the planet.",
         ),
     ] = ZTILT,
     zmin: Annotated[
         int,
         typer.Option(
-            help="The lowest elevation value on the planet. The deepest oceanic trench on Earth is approximately -10300 m"
+            help="The lowest elevation value on the planet.",
         ),
     ] = ZMIN,
     zmax: Annotated[
         int,
         typer.Option(
-            help="The highest elevation value on the planet. The highest peak on Earth is approximately 8700 m."
+            help="The highest elevation value on the planet.",
         ),
     ] = ZMAX,
     ocean_percent: Annotated[
         float,
         typer.Option(
-            help="Sets the global sea level by defining a relative percent of the range from min to max elevation."
+            help="Sets the global sea level relative to the elevation range.",
         ),
     ] = OCEAN_PERCENT,
     scale: Annotated[
         int,
         typer.Option(
-            help="Sets a scaling factor for elevations to make them visible in the plot. Does not change the actual elevation values."
+            help="Sets a scale factor for elevations to make them visible in the plot.",
         ),
     ] = ZSCALE,
     octaves: Annotated[
         int,
         typer.Option(
-            help='Sets the number of octaves to use for noise sampling. More octaves create more "complexity."'
+            help="Sets the complexity of the generated noise.",
         ),
     ] = OCTAVES,
     loglevel: Annotated[
-        str, typer.Option(help="Sets the verbosity of the logger.")
+        str,
+        typer.Option(help="Sets the verbosity of the logger."),
     ] = LOGLEVEL,
-    platesnum: Annotated[
+    platesnum: Annotated[  # noqa: ARG001
         int,
         typer.Option(
-            help="Sets the number of tectonic plates to create. --Not currently in use.--"
+            help="Sets the number of tectonic plates to create. --Not in use.--",
         ),
     ] = PLATESNUM,
 ) -> None:
-    """
-    Main function for the Lathe program. Generates a 3D mesh of a planet, applies elevations, and visualizes the result.
+    """Generate a 3D mesh of a planet, apply elevations, and visualize the result.
 
     Args:
-        name (Annotated[ str, typer.Argument, optional): A name for the world. If one is not provided, a random name will be set. Defaults to a random value provided by the getPlanetName() function.
-        save (Annotated[ bool, typer.Option, optional): Sets whether the mesh and world data are saved to output files. Defaults to False.
-        seed (Annotated[ int, typer.Option, optional): The world seed to be used. Defaults to 0, which triggers selection of a random integer.
-        radius (Annotated[ int, typer.Option, optional): The radius of the world in meters. (Earth radius is approximately 6378100 m.) Defaults to the value of RADIUS.
-        recursion (Annotated[ int, typer.Option, optional): The number of recursions used in creating the icosphere mesh. '9' yields 2,621,442 points and 5,242,880 cells. The surface area of the Earth is approximately 514 million km2. Defaults to the value of RECURSION.
-        ztilt (Annotated[ float, typer.Option, optional): Controls the z-axis tilt of the planet. The Earth's axial tilt is (currently) approximately 23.4 degrees. Defaults to ZTILT.
-        zmin (Annotated[ int, typer.Option, optional): The lowest elevation value on the planet. The deepest oceanic trench on Earth is approximately -10300 m. Defaults to ZMIN.
-        zmax (Annotated[ int, typer.Option, optional): The highest elevation value on the planet. The highest peak on Earth is approximately 8700 m. Defaults to ZMAX.
-        ocean_percent (Annotated[ float, typer.Option, optional): Sets the global sea level by defining a relative percent of the range from min to max elevation. Defaults to OCEAN_PERCENT.
-        scale (Annotated[ int, typer.Option, optional): Sets a scaling factor for elevations to make them visible in the plot. Does not change the actual elevation values. Defaults to ZSCALE.
-        octaves (Annotated[ int, typer.Option, optional): Sets the number of octaves to use for noise sampling. More octaves create more "complexity." Defaults to OCTAVES.
-        loglevel (Annotated[ str, typer.Option, optional): Sets the verbosity of the logger. Defaults to LOGLEVEL.
-        platesnum (Annotated[ int, typer.Option, optional): Sets the number of tectonic plates to create. --Not currently in use.-- Defaults to PLATESNUM.
+        name (str, optional): A name for the world.
+        save (bool, optional): Whether to save world. Defaults to False.
+        visualize (bool, optional): Whether to display the world. Defaults to True.
+        seed (int, optional): The world seed to be used. Defaults to a random number.
+        radius (int, optional): The radius of the world in meters.
+        recursion (int, optional): The number of recursions used in creating the mesh.
+        ztilt (float, optional): Controls the z-axis tilt of the planet.
+        zmin (int, optional): The lowest elevation on the planet.
+        zmax (int, optional): The highest elevation value on the planet.
+        ocean_percent (float, optional): The global sea level relative to elevation.
+        scale (int, optional): A multiplier to make elevations visible when displayed.
+        octaves (int, optional): The number of octaves to use for noise sampling.
+        loglevel (str, optional): The verbosity of the logger.
+        platesnum (int, optional): The number of tectonic plates to create. -Not used.-
 
     Returns:
         None.
-    """
 
+    """
     # Setup logger.
 
     logging.basicConfig(
@@ -182,27 +181,14 @@ def main(
     std_con.print("Setting world seed and parameters.\r\n")
 
     try:
-        if seed == 0:
+        if seed != 0 and (seed < SEED_MIN or seed > SEED_MAX):
             world_seed = 0
-        elif seed < 1:
-            world_seed = 0
-            err_con.print(
-                "Seed must be an integer between 1 and 255. Setting to random seed.\r\n"
-            )
-        elif seed > 255:
-            world_seed = 0
-            err_con.print(
-                "Seed must be an integer between 1 and 255. Setting to random seed.\r\n"
-            )
+            world_seed_string = "Random"
+            std_con.print(f"Seed must be an integer between {SEED_MIN} and {SEED_MAX}. Setting to random seed.\r\n")
         else:
-            world_seed = seed
+            world_seed = seed, world_seed_string = str(world_seed)
     except ValueError as e:
-        err_con.print(f"Seed {e} is not an integer between 1 and 256.\r\n")
-    finally:
-        if world_seed == 0:
-            world_seed_string = str("Random")
-        else:
-            world_seed_string = str(world_seed)
+        err_con.print(f"Seed {e} is not an integer between {SEED_MIN} and {SEED_MAX}.\r\n")
 
     zrange: float = zmax - zmin
 
@@ -246,8 +232,7 @@ def main(
 
     std_con.print(params_table)
 
-    # TODO: Determine how ocean_percent impacts surface area water cover.
-    # NOTE: Ocean_percent essentially sets a surface water level for the display mask. I'm not sure it's actually necessary to set a water mask, since we assume that sea level = 0 m. Our rescale function handles this, and we should be able to change the map display accordingly. That said, a value to set the water level or % of surface covered by ocean would be helpful. I need to understand how this value relates to that. For reference, the percentage of the Earth's surface covered by water is approximately 71%.
+    # TODO @CNCBob: Determine how ocean_percent impacts surface area water cover. Ocean_percent essentially sets a surface water level for the display mask. I'm not sure it's actually necessary to set a water mask, since we assume that sea level = 0 m. Our rescale function handles this, and we should be able to change the map display accordingly. That said, a value to set the water level or % of surface covered by ocean would be helpful. I need to understand how this value relates to that. For reference, the percentage of the Earth's surface covered by water is approximately 71%.
 
     # Create world mesh, points arrays, and faces arrays.
 
@@ -295,9 +280,7 @@ def main(
 
     std_con.print(f"Rescaling elevations within range {zmin} to {zmax}.\r\n")
 
-    rescaled_elevations: NDArray[np.float64] = rescale(
-        elevations=raw_elevations, zmin=zmin, zmax=zmax
-    )
+    rescaled_elevations: NDArray[np.float64] = rescale(elevations=raw_elevations, zmin=zmin, zmax=zmax)
 
     std_con.print(f"Sample of Rescaled Elevations:\r\n {rescaled_elevations} \r\n")
 
@@ -307,9 +290,7 @@ def main(
 
     world_mesh.point_data["Elevations"] = rescaled_elevations
 
-    std_con.print(
-        f"Sample of Elevations Dataset:\r\n {world_mesh.point_data['Elevations']} \r\n"
-    )
+    std_con.print(f"Sample of Elevations Dataset:\r\n {world_mesh.point_data['Elevations']} \r\n")
 
     # Display world generation time.
 
@@ -318,24 +299,37 @@ def main(
 
     std_con.print(f"Terrain generated in {gen_timer:0.4f} seconds.\r\n")
 
+    # HACK: Begin hackathon!
+
     # XYZ to Lat-Lon conversion.
 
     std_con.print("Converting XYZ to Lat-Lon coordinates.\r\n")
 
-    coords = xyz2latlon(mesh=world_mesh)
-
-    std_con.print("Adding lat-lon coordinates to mesh as dataset.\r\n")
-
-    world_mesh.point_data["LatLon"] = coords
-
-    std_con.print(
-        f"Sample of LatLon Dataset:\r\n {world_mesh.point_data['LatLon']} \r\n"
-    )
+    lat, lon = xyz2latlon(mesh=world_mesh, radius=radius)
 
     latlon_timer_end: float = time.perf_counter()
     latlon_timer: float = latlon_timer_end - gen_timer_end
 
     std_con.print(f"Lat-Lon coordinates generated in {latlon_timer:0.4f} seconds.\r\n")
+
+    # Create plate carree projection meshes.
+
+    pc_x = lon * radius
+    pc_y = lat * radius
+    pc_z = rescaled_elevations
+    pc_map = np.column_stack((pc_x, pc_y, pc_z))
+    pc_mesh = pv.PolyData(pc_map)
+    pc_mesh.delaunay_2d(inplace=True, progress_bar=True)
+    pc_mesh.point_data["Elevations"] = rescaled_elevations
+    pc_mesh.plot(
+        show_edges=False,
+        scalars="Elevations",
+        cmap="topo",
+        name="Lat-Lon Map Projection",
+    )
+    save_world(name=name, parameters=world_params, mesh=pc_mesh)
+
+    # HACK: End hackathon!
 
     # Save mesh and world data.
 
@@ -351,22 +345,21 @@ def main(
 
     # Visualization.
 
-    std_con.print("Starting visualization.\r\n")
-    std_con.print("Close visualization window to end program.\r\n")
+    if visualize:
+        std_con.print("Starting visualization.\r\n")
+        std_con.print("Close visualization window to end program.\r\n")
 
-    viz(
-        mesh=world_mesh,
-        name=name,
-        scalars="Elevations",
-        radius=radius,
-        zscale=scale,
-        zmin=zmin,
-        zmax=zmax,
-    )
+        viz(
+            mesh=world_mesh,
+            name=name,
+            scalars="Elevations",
+            radius=radius,
+            zscale=scale,
+            zmin=zmin,
+            zmax=zmax,
+        )
 
     std_con.print("Done.\r\n")
-
-    return None
 
 
 if __name__ == "__main__":

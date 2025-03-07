@@ -5,16 +5,12 @@ import json
 from datetime import datetime
 from math import copysign, cos, pi, sin, sqrt
 from pathlib import Path
-# import os
 
-# Import third-party modules.
 import numpy as np
+from mylogger import std_con
 from numba import prange
 from numpy.typing import NDArray
-from pyvista import Icosphere, PolyData, cartesian_to_spherical as c2s
-
-# Import internal modules.
-from mylogger import std_con
+from pyvista import Icosphere, PolyData, cartesian_to_spherical
 
 # Define mathmatical constants.
 RIGHT_ANGLE: float = pi / 2
@@ -94,9 +90,7 @@ def fibonacci_sphere(points: NDArray) -> NDArray:
     return samples
 
 
-def create_mesh(
-    radius: int, recursion: int, origin: tuple[float, float, float] = (0.0, 0.0, 0.0)
-) -> Mesh:
+def create_mesh(radius: int, recursion: int, origin: tuple[float, float, float] = (0.0, 0.0, 0.0)) -> Mesh:
     """
     Creates an icosphere mesh object with the specified radius and recursion level (number of vertices and faces).
 
@@ -113,7 +107,6 @@ def create_mesh(
     return world_mesh
 
 
-# TODO: Simplify this rescale function. I am only using one version of it.
 def rescale(
     elevations: NDArray,
     zmin: int,
@@ -183,25 +176,23 @@ def rescale(
     return new_array
 
 
-def xyz2latlon(mesh: PolyData) -> MeshArray:
+def xyz2latlon(mesh: PolyData, radius: int) -> tuple[MeshArray, MeshArray]:
     """
     Converts XYZ coordinates to spherical coordinates using the PyVista Cartesian-to-Spherical function, and then to radius and degrees using the Numpy.degrees function.
 
     Args:
         mesh (PolyData): The Pyvista mesh object.
+        radius (int): The world radius.
 
     Returns:
-        MeshArray: A NumPy array with shape (,3) and dtype of np.float64, containing the spherical coordinates in degrees (latitude, longitude, radius).
+        lat, lon (tuple[MeshArray, MeshArray]): A tuple of numpy arrays containing the latitude and longitude in degrees.
     """
-    r, phi, theta = c2s(mesh.points[:, 0], mesh.points[:, 1], mesh.points[:, 2])
+
+    r, phi, theta = cartesian_to_spherical(mesh.points[:, 0], mesh.points[:, 1], mesh.points[:, 2])
     lat = np.degrees(phi)
     lon = np.degrees(theta)
 
-    coords: MeshArray = np.column_stack((lat, lon))
-
-    std_con.print(f"Sample of Lat-Lon Coordinates:\r\n {coords} \r\n")
-
-    return coords
+    return (lat, lon)
 
 
 def save_world(
