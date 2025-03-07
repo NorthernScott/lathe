@@ -4,11 +4,9 @@ from pathlib import Path
 
 import numpy as np
 import opensimplex as osi
-from mylogger import err_con, std_con
 from numba import prange
 from pyvista import Icosphere
 from pyvista import pyvista_ndarray as PVNDArray
-from viz import viz
 
 
 class World(object):
@@ -93,26 +91,24 @@ class World(object):
                 raise ValueError
             elif self.name == "":
                 self.name = self.get_name()
-                std_con.print(f"Name set to: {self.name}.")
                 pass
             else:
                 pass
         except ValueError as e:
-            err_con.print(f"Name must be an alphanumeric string no more than 24 characters long. Name: '{e}'\r\n")
+            e
 
         # Check seed.
         try:
             if self.seed != 0 and (self.seed < seed_min or self.seed > seed_max):
                 self.seed = 0
                 self.seed_string = "Random"
-                std_con.print(f"Seed must be an integer between {seed_min} and {seed_max}. Setting to random seed.\r\n")
             else:
                 self.seed_string = str(self.seed)
                 pass
         except ValueError as e:
-            err_con.print(f"Seed must be an integer between {seed_min} and {seed_max}. Seed: {e}\r\n")
+            e
         except TypeError as e:
-            err_con.print(f"Seed must be an integer. Seed: {e}\r\n")
+            e
 
     def get_name(self) -> str:
         """Return a random planet name from planetnames.json."""
@@ -124,7 +120,7 @@ class World(object):
                 names = data["planetNames"]
                 self.name = random.choice(seq=names)
         except FileNotFoundError as e:
-            err_con.print(f"{e} does not exist.")
+            e
 
         return self.name
 
@@ -208,24 +204,3 @@ class World(object):
 
         # Add rescaled elevations as scalar dataset.
         self.mesh.point_data["Elevations"] = rescaled_elevations
-
-
-test = World()
-print(test)
-print(test.name)
-print(test.mesh)
-print(test.mesh.points)
-print(type(test.mesh.points))
-
-test.generate_elevations()
-print(test.mesh.point_data["Elevations"])
-
-viz(
-    mesh=test.mesh,
-    name=test.name,
-    scalars=test.mesh.point_data["Elevations"],
-    radius=test.radius,
-    zscale=test.zscale,
-    zmin=test.zmin,
-    zmax=test.zmax,
-)
