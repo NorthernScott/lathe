@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import opensimplex as osi
-from numba import prange
 from pyvista import Icosphere
 from pyvista import pyvista_ndarray as PVNDArray
 from scipy.spatial import KDTree
@@ -141,11 +140,11 @@ class World:
             [(self.init_strength * (self.persistence**i)) / self.radius for i in range(self.octaves)]
         )
 
-        for i in prange(self.octaves):
+        for i in range(self.octaves):
             rough_verts = self.mesh.points * roughness_values[i]
             octave_elevations = np.ones(len(self.mesh.points), dtype=np.float64)
 
-            for v in prange(len(rough_verts)):
+            for v in range(len(rough_verts)):
                 octave_elevations[v] = osi.noise4(
                     x=rough_verts[v][0],
                     y=rough_verts[v][1],

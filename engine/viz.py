@@ -23,6 +23,8 @@ class Visualizer:
             for key in self.world.mesh.point_data.keys():
                 self.dataset_names.append(self.world.mesh.point_data[key])
 
+                print(self.dataset_names)
+
     def __str__(self) -> str:
         return f"Visualizer(name={self.world_name}, radius={self.world_radius}, zscale={self.world_zscale})"
 
@@ -48,7 +50,6 @@ class Visualizer:
 
         # Set up the PyVista plotter.
         pv.plotter._ALL_PLOTTERS.clear()
-
         pv.set_plot_theme("dark")
         pv.global_theme.anti_aliasing = "ssaa"
         pv.global_theme.lighting = True
@@ -57,27 +58,12 @@ class Visualizer:
 
         # Create a plotter object
         plotter = pv.Plotter()
-
-        # Function to update the scalar dataset
-        def update_scalars(self, value) -> None:
-            scalar_name = self.dataset_names[int(value)]
-            plotter.update_scalars(self.world.mesh.point_data[scalar_name], render=True)
+        plotter.enable_anti_aliasing()
+        plotter.enable_hidden_line_removal(all_renderers=True)
 
         # Add the mesh to the plotter with the initial scalar dataset
         plotter.add_mesh(
             self.world.mesh, scalars=self.dataset_names[0], scalar_bar_args={"title": self.dataset_names[0]}
-        )
-
-        # Add a slider widget to switch between scalar datasets
-        plotter.add_slider_widget(
-            update_scalars,
-            rng=[0, len(self.dataset_names) - 1],
-            title="Scalar Dataset",
-            value=0,
-            interaction_event="always",
-            style="modern",
-            pointa=(0.025, 0.1),
-            pointb=(0.225, 0.1),
         )
 
         # Show the plotter
