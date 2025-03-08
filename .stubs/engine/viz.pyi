@@ -1,11 +1,11 @@
-from _typeshed import Incomplete
-from lathe.world import World as World
+from engine.world import World as World
 
 class Visualizer:
-    world_name: Incomplete
-    world_radius: Incomplete
-    world_zscale: Incomplete
-    scalar_datasets: Incomplete
+    world: World
+    world_name: str
+    world_radius: int
+    world_zscale: int
+    dataset_names: list
     def __init__(self, world: World, name: str, radius: int, zscale: int) -> None: ...
     def viz(self) -> None:
         """

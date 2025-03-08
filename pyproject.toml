@@ -64,9 +64,7 @@ target-version = "py313"
 [tool.ruff.lint]
 ignore = [
     "D100",   # ignore undocumented-public-module
-    "N802",   # ignore invalid-function-name. I like camel case, so suck it.
     "S311",   # ignore suspicious-non-cryptographic-random-usage as I am not using cryptography.
-    "FBT002", # ignore boolean-default-value-positional-argument # TODO: Eventually I will refactor the main function and fix these.
     "FIX002", # ignore line-contains-todo. I use TODO as a task item.
     "FIX004", # ignore line-contains-hack. I use HACK as a task item.
     "TD003",  # ignore missing-todo-link as I am not using an issue tracker at the moment.
@@ -107,8 +105,8 @@ docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
 [tool.mypy]
-mypy_path = "./src/lathe/"
-files = ["**/*.py"]
+mypy_path = ".; ./engine; ./gui; ./.stubs"
+files = ["**/*.py", "**/*.pyi"]
 exclude = [
     "build",
     "dist",
@@ -126,4 +124,7 @@ exclude = [
     "/outputs",
 ]
 namespace_packages = true
-follow_untyped_imports = false
+follow_untyped_imports = true
+
+[tool.mypy-numba]
+disable_error_code = ["attr-defined"]
