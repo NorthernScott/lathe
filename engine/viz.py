@@ -6,6 +6,7 @@ from engine.world import World
 
 class Visualizer:
     def __init__(self, world: World) -> None:
+        """Initialize the object and receive the World object and all its attributes."""
         self.world: World = world
         self.dataset_names: list[str] = []
 
@@ -25,28 +26,13 @@ class Visualizer:
         pv.PolyDataFilters.smooth_taubin(self.world.mesh)  # Defaults to 20 passes with a pass band of 0.1.
 
     def __str__(self) -> str:
-        return f"Visualizer(name={self.world.name}, radius={self.world.radius}, zscale={self.world.zscale})"
+        return f"Visualizer(name={self.world.name}, mesh={self.world.mesh}"
 
     def __repr__(self) -> str:
-        return f"Visualizer(name={self.world.name!r}, radius={self.world.radius!r}, zscale={self.world.zscale!r})"
+        return f"Visualizer(name={self.world.name!r}, mesh={self.world.mesh!r}"
 
     def viz(self) -> None:
-        """
-        Use PyVista to visualize the terrain mesh.
-
-        Args:
-            mesh (type[pv.PolyData]): The terrain mesh to visualize.
-            radius (int): The radius of the world.
-            zscale (int): The scale factor by which to exaggerate the terrain.
-            zmin (int): The minimum scaled elevation value.
-            zmax (int): The maximum scaled elevation value.
-            scalars (type[pv.PolyData.point_data]): An array of scalar values used to color the mesh.
-            name (str): The name of the world.
-
-        Returns:
-        None: Returns nothing.
-        """
-
+        """Render the mesh with one or more scalar datasets."""
         # Configure global render options.
         pv.plotter._ALL_PLOTTERS.clear()
         pv.set_plot_theme("dark")
