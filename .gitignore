@@ -1,19 +1,18 @@
+# Custom exclusions
+.vscode
+.vscode-server
+.archive
+.old
+*.code-workspace
+.obsidian
+**/*password.txt
+outputs
+typings
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Generation results
-outputs/
-
-# Project files
-.vscode/
-.vscode-server/
-.archive/
-.old/
-*.code-workspace
-.obsidian/
-**/*password.txt
 
 # Numba cache
 *.nbc
@@ -140,6 +139,7 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+.stubs
 
 # Pyre type checker
 .pyre/
