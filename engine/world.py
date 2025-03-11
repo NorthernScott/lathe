@@ -1,12 +1,16 @@
-import json  # noqa: D100
+import json
 import random
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import opensimplex as osi
-from pyvista import Icosphere
-from pyvista import pyvista_ndarray as PVNDArray
+from pyvista import Icosphere  # type: ignore Icosphere is a special case of PolyData
 from scipy.spatial import KDTree
+
+if TYPE_CHECKING:
+    from pyvista.core.pointset import PolyData
+    from numpy.typing import NDArray
 
 
 class World:
@@ -17,12 +21,12 @@ class World:
         ocean_percent: float = 0.55,
         octaves: int = 8,
         radius: int = 6378100,
-        recursion: int = 7,
+        recursion: int = 9,
         seed: int = 0,
         verbosity: str = "WARN",
         zmax: int = 9567,
         zmin: int = -9567,
-        zscale: int = 20,
+        zscale: int = 10,
         ztilt: float = 23.4,
     ) -> None:
         """Initialize the new instance of the World(PolyData) class.
@@ -42,46 +46,40 @@ class World:
             ztilt (float): Axial tilt of the world. Defaults to 23.4 degrees.
 
         """
-        # Initialize variables and pre-calculate values.
-        name.strip()  # Strips whitespace and non-displaying characters from name.
-        seed_min: int = 1  # OpenSimplex expects a seed value between 1-255.
-        seed_max: int = 255  # OpenSimplex expects a seed value between 1-255.
-        seed_string: str = ""  # Initializes an empty seed string for use in later output.
-        zrange: int = zmax - zmin  # Calculates the elevation range.
-        ocean_point: float = zrange * ocean_percent  # Applies the ocean_percent to elevation range.
-        init_roughness: float = 1.5  # Sets the initial roughness (frequency) of noise.
-        init_strength: float = 0.4  # Sets the initial strength (amplitude) of noise.
-        persistence: float = 0.5  # Amplitude value to multiply noise by each octave.
-        roughness: float = 2.5  # Frequency value to multiply noise by each octave.
-        origin: tuple = (0.0, 0.0, 0.0)  # The origin point of the sphere in (X,Y,Z) coordinates.
 
         # Initialize instance variables.
-        self.elevation_scalars: PVNDArray = PVNDArray([])
-        self.init_roughness = init_roughness
-        self.init_strength = init_strength
-        self.name = name
-        self.num_plates = num_plates
-        self.ocean_percent = ocean_percent
-        self.ocean_point = ocean_point
-        self.octaves = octaves
-        self.origin = origin
-        self.persistence = persistence
-        self.radius = radius
-        self.raw_elevations: PVNDArray = PVNDArray([])
-        self.recursion = recursion
-        self.rescaled_elevations: PVNDArray = PVNDArray([])
-        self.roughness = roughness
-        self.seed = seed
-        self.seed_string = seed_string
-        self.verbosity = verbosity
-        self.zmax = zmax
-        self.zmin = zmin
-        self.zrange = zrange
-        self.zscale = zscale
-        self.ztilt = ztilt
+        self.init_roughness: float = 1.5  # Sets the initial roughness (frequency) of noise.
+        self.init_strength: float = 0.4  # Sets the initial strength (amplitude) of noise.
+        self.mesh: PolyData = Icosphere(radius=self.radius, nsub=self.recursion, center=self.origin)
+        self.name: str = name.strip()
+        self.num_plates: int = num_plates
+        self.ocean_percent: float = ocean_percent
+        self.octaves: int = octaves
+        self.origin: tuple[float, float, float] = (
+            0.0,
+            0.0,
+            0.0,
+        )  # The origin point of the sphere in (X,Y,Z) coordinates.
+        self.persistence: float = 0.5  # Amplitude value to multiply noise by each octave.
+        self.radius: int = radius
+        self.recursion: int = recursion
+        self.roughness: float = 2.5  # Frequency value to multiply noise by each octave.
+        self.seed: int = seed
+        self.seed_min: int = 1
+        self.seed_max: int = 255
+        self.seed_string: str = ""
+        self.verbosity: str = verbosity
+        self.zmax: int = zmax
+        self.zmin: int = zmin
+        self.zscale: int = zscale
+        self.ztilt: float = ztilt
 
-        # Initialize mesh.
-        self.mesh = Icosphere(radius=self.radius, nsub=self.recursion, center=self.origin)
+        # Initialize calculated variables.
+        self.zrange: int = self.zmax - self.zmin
+        self.ocean_point: float = self.zrange * ocean_percent  # Applies the ocean_percent to elevation range.
+        self.raw_elevations: NDArray[np.float64] = np.empty(shape=len(self.mesh.points), dtype=np.float64)  # type: ignore
+        self.elevation_scalars: NDArray[np.float64] = np.empty(shape=len(self.raw_elevations), dtype=np.float64)
+        self.rescaled_elevations: NDArray[np.float64] = np.empty(shape=len(self.raw_elevations), dtype=np.float64)
 
         # Check name for validity.
         try:
@@ -92,21 +90,21 @@ class World:
                 pass
             else:
                 pass
-        except ValueError as e:
-            e
+        except ValueError:
+            raise ValueError  # TODO: Implement error handling.
 
         # Check seed.
         try:
-            if self.seed != 0 and (self.seed < seed_min or self.seed > seed_max):
+            if self.seed != 0 and (self.seed < self.seed_min or self.seed > self.seed_max):
                 self.seed = 0
                 self.seed_string = "Random"
             else:
-                self.seed_string = str(self.seed)
+                self.seed_string = str(object=self.seed)
                 pass
-        except ValueError as e:
-            e
-        except TypeError as e:
-            e
+        except ValueError:
+            raise ValueError  # TODO: Implement error handling.
+        except TypeError:
+            raise TypeError  # TODO: Implement error handling.
 
     def _get_name(self) -> str:
         """Return a random planet name from planetnames.json."""
@@ -114,11 +112,11 @@ class World:
 
         try:
             with Path.open(file_path, "r") as f:
-                data = json.load(fp=f)
-                names = data["planetNames"]
+                data: ... = json.load(fp=f)
+                names: ... = data["planetNames"]
                 self.name = random.choice(seq=names)
-        except FileNotFoundError as e:
-            e
+        except FileNotFoundError:
+            raise FileNotFoundError  # TODO: Implement error handling.
 
         return self.name
 
@@ -158,42 +156,45 @@ class World:
         elevation_scalars = (raw_elevations + self.radius) / self.radius
 
         # Apply elevation scalars to mesh.
-        self.mesh.points[:, 0] *= elevation_scalars
-        self.mesh.points[:, 1] *= elevation_scalars
-        self.mesh.points[:, 2] *= elevation_scalars
+        self.mesh.points[:, 0] *= elevation_scalars  # type: ignore
+        self.mesh.points[:, 1] *= elevation_scalars  # type: ignore
+        self.mesh.points[:, 2] *= elevation_scalars  # type: ignore
 
         # Calculate constants for rescaling.
-        emin = np.min(raw_elevations)
-        emax = np.max(raw_elevations)
-        erange = emax - emin
+        erange = np.max(raw_elevations) - np.min(raw_elevations)
 
         # Rescale elevations.
-        rescaled_elevations = ((raw_elevations - emin) / erange) * self.zrange + self.zmin
+        rescaled_elevations = ((raw_elevations - np.min(raw_elevations)) / erange) * self.zrange + self.zmin
 
         # Add rescaled elevations as scalar dataset.
         self.mesh.point_data["Elevations"] = rescaled_elevations
 
-    def create_tectonic_plates(self, num_plates) -> None:
+    def create_tectonic_plates(self) -> None:
         """Create tectonic plates from the 3D mesh.
 
         Args:
             num_plates (int): Number of tectonic plates to create.
         """
         # Randomly seed plate centers
-        plate_centers = self.mesh.points[np.random.choice(len(self.mesh.points), num_plates, replace=False)]
+        plate_centers: NDArray[np.float64] = self.mesh.points[
+            np.random.choice(len(self.mesh.points), self.num_plates, replace=False)
+        ]
 
         # Create a KDTree for fast nearest-neighbor lookup
         tree = KDTree(plate_centers)
 
         # Assign each point to the nearest plate center
-        distances, plate_indices = tree.query(self.mesh.points)
+        distances: float | list[int]  # type: ignore
+        plate_indices: int | list[int]
+
+        distances, plate_indices = tree.query(x=self.mesh.points)  # type: ignore
 
         # Store the plate indices as a scalar dataset
-        self.mesh.point_data["PlateIndices"] = plate_indices
+        self.mesh.point_data["PlateIndices"] = plate_indices  # type: ignore
 
         # Optionally, you can visualize the plates by assigning random colors to each plate
-        plate_colors = np.random.rand(num_plates, 3)
+        plate_colors = np.random.rand(self.num_plates, 3)
         colors = plate_colors[plate_indices]
         self.mesh.point_data["PlateColors"] = colors
 
-        print(f"Created {num_plates} tectonic plates.")
+        print(f"Created {self.num_plates} tectonic plates.")
