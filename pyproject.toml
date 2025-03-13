@@ -1,11 +1,27 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "lathe-of-heaven"
+name = "lathe"
 version = "0.1.0"
 description = ""
 authors = [
-    { name = "NorthernScott", email = "stonejester@protonmail.com" },
+    { name = "Fjordstone", email = "stonejester@protonmail.com" },
 ]
-dependencies = []
+dependencies = [
+    "cmocean",
+    "matplotlib",
+    "numpy",
+    "opensimplex",
+    "pyside6",
+    "pyvista",
+    "pyvistaqt",
+    "qtpy",
+    "rich",
+    "scipy",
+    "typer",
+]
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
@@ -13,14 +29,11 @@ license = { text = "MIT" }
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.9.7",
-    "mypy>=1.15.0",
+    "pyright>=1.1",
     "pytest>=8.3.4",
+    "ruff>=0.9.7",
+    "setuptools",
 ]
-
-[build-system]
-requires = ["setuptools >= 61.0"]
-build-backend = "setuptools.build_meta"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -53,7 +66,9 @@ exclude = [
     "venv",
     "outputs",
     ".out",
+    "typings",
 ]
+
 # Max line length same as Black.
 line-length = 120
 indent-width = 4
@@ -104,27 +119,32 @@ docstring-code-format = true
 # enabled.
 docstring-code-line-length = "dynamic"
 
-[tool.mypy]
-mypy_path = ".; ./engine; ./gui; ./.stubs"
-files = ["**/*.py", "**/*.pyi"]
+[tool.pyright]
+include = ["src", "src/lathe"]
 exclude = [
-    "build",
-    "dist",
-    "site-packages",
-    ".tox",
-    ".nox",
-    ".eggs",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".hypothesis",
-    ".git",
-    ".github",
-    ".vscode",
-    ".mypy",
-    "/outputs",
+    "**/node_modules",
+    "**/__pycache__",
+    "src/lathe/typings",
 ]
-namespace_packages = true
-follow_untyped_imports = true
+ignore = [
+    "src/old",
+    "src/lathe/typings",
+]
+stubPath = "src/lathe/typings"
 
-[tool.mypy-numba]
-disable_error_code = ["attr-defined"]
+reportMissingImports = "error"
+reportMissingTypeStubs = false
+
+pythonVersion = "3.13"
+pythonPlatform = "Windows"
+
+executionEnvironments = [
+    { root = "src/lathe" },
+]
+
+[tool.pyright.defineConstant]
+DEBUG = true
+PYQT5 = false
+PYSIDE2 = false
+PYQT6 = false
+PYSIDE6 = true
