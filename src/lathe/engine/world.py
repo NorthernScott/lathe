@@ -1,21 +1,22 @@
 import json
 import random
+from math import floor
 from pathlib import Path
 from typing import TYPE_CHECKING
-from math import floor
 
 import numpy as np
 import opensimplex as osi
-from pyvista import Icosphere
+from pyvista import Icosphere, LookupTable
 from scipy.spatial import KDTree
 
 if TYPE_CHECKING:
-    from pyvista.core.pointset import PolyData
     from numpy.typing import NDArray
+    from pyvista.core.pointset import PolyData
 
 
 class World:
     """Class used to initialize, handle, and generate all world information."""
+
     def __init__(
         self,
         name: str = "",
@@ -27,7 +28,7 @@ class World:
         verbosity: str = "WARN",
         zmax: int = 9567,
         zmin: int = -9567,
-        zscale: float = 15,  # Was: 0.5e-5, -10 or -20
+        zscale: float = 20,  # Was: 0.5e-5, -10 or -20
         ztilt: float = 23.4,
     ) -> None:
         """Class used to initialize, handle, and generate all world information.
@@ -85,7 +86,7 @@ class World:
         self.mesh: PolyData = Icosphere(radius=self.radius, nsub=self.recursion, center=self.origin)
 
         # Initialize calculated variables.
-        self.num_plates: int = floor(self.radius / 500_000)
+        self.num_plates: int = 48  # floor(self.radius / 500_000)
         self.zscale: float = -zscale
         self.zrange: int = self.zmax - self.zmin
         self.ocean_point: float = self.zrange * ocean_percent  # Applies the ocean_percent to elevation range.
@@ -162,25 +163,28 @@ class World:
                 )
 
             raw_elevations += octave_elevations * strength_values[i] * self.radius
-            self.mesh.point_data["Raw Elevations"] = raw_elevations
+        self.mesh.point_data["Raw Elevations"] = raw_elevations
 
         # Calculate elevation scalars.
-        elevation_scalars: NDArray[np.float64] = (raw_elevations + self.radius) / self.radius
+        elevation_scalars = (raw_elevations + self.radius) / self.radius
+
         self.mesh.point_data["Elevation Scalars"] = elevation_scalars
 
-        # Apply elevation scalars to mesh.
         self.mesh.points[:, 0] *= elevation_scalars  # type: ignore
         self.mesh.points[:, 1] *= elevation_scalars  # type: ignore
         self.mesh.points[:, 2] *= elevation_scalars  # type: ignore
 
-        # Calculate constants for rescaling.
-        erange: float = np.max(raw_elevations) - np.min(raw_elevations)
+        emin = np.min(elevation_scalars)
+        emax = np.max(elevation_scalars)
+        erange: float = emax - emin
 
-        # Rescale elevations.
-        rescaled_elevations = ((raw_elevations - np.min(raw_elevations)) / erange) * self.zrange + self.zmin
-
-        # Add rescaled elevations as scalar dataset.
+        # Rescale elevations to zrange.
+        rescaled_elevations = ((elevation_scalars - emin) / erange) * self.zrange + self.zmin
         self.mesh.point_data["Elevations"] = rescaled_elevations
+
+        # Create landform array.
+        self.landforms = rescaled_elevations >= 0  # Each point where rescaled elevation >= 0 is considered land.
+        self.mesh.point_data["Landforms"] = self.landforms
 
         # Compute normals.
         self.mesh.compute_normals(inplace=True)
@@ -199,22 +203,66 @@ class World:
         Args:
             num_plates (int, optional): The number of tectonic plates to create. Defaults to the radius / 500,000.
         """
+
+        # If num_plates is not given by user, user default value.
         if num_plates == 0:
             num_plates = self.num_plates
-        # Randomly seed plate centers.
-        plate_centers: NDArray[np.float64] = self.mesh.points[
-            np.random.choice(len(self.mesh.points), num_plates, replace=False)
-        ]
+
+        # Generate tectonic plate centers.
+        plate_centers = self.mesh.points[np.random.choice(len(self.mesh.points), num_plates, replace=False)]
 
         # Ensure plate_centers contains only finite values
         if not np.all(np.isfinite(plate_centers)):
             raise ValueError("plate_centers contains NaN or infinite values")
 
-        # Create a KDTree for fast nearest-neighbor lookup
+        # Ensure plate_centers contains only finite values
+        if not np.all(np.isfinite(plate_centers)):
+            raise ValueError("plate_centers contains NaN or infinite values")
+
         tree = KDTree(data=plate_centers)
+        self.distances, self.plate_indices = tree.query(x=self.mesh.points)
+        self.plate_sorted_indices = np.argsort(a=self.plate_indices)
+        self.plate_landmask = np.column_stack((self.plate_indices, self.landforms))
 
-        # Assign each point to the nearest plate center
-        distances, plate_indices = tree.query(x=self.mesh.points)
+        self.mesh.point_data["Tectonic Plates Mask"] = self.plate_landmask
 
-        # Store the plate indices as a scalar dataset
-        self.mesh.point_data["Tectonic Plates"] = plate_indices
+        self.mesh.point_data["Tectonic Plates"] = self.plate_indices
+
+        # INFO: Creates a dictionary of the generated plates for possible later use in visualizaton.
+        self.tectonic_plates_annotations: dict = {
+            i: str(object=f"Plate {i}")
+            for i in range(
+                0,
+                np.max(self.plate_indices),
+            )
+        }
+
+        # INFO: Creates a colourmap for later use in displaying the tectonic plates.
+        self.tectonic_color_map = LookupTable(
+            cmap="Accent",
+            n_values=self.num_plates,
+            flip=False,
+            values=None,
+            value_range=None,
+            hue_range=None,
+            alpha_range=None,
+            scalar_range=(np.min(self.plate_indices), np.max(self.plate_indices)),
+            log_scale=None,
+            nan_color=None,
+            above_range_color=None,
+            below_range_color=None,
+            ramp=None,
+            annotations=self.tectonic_plates_annotations,
+        )
+
+    def move_tectonic_plates(self) -> None:
+        # Generate random vectors in the XY plane for each plate
+        random_vectors = np.random.rand(self.num_plates, 2) * 2 - 1  # Random values in range [-1, 1]
+        normalized_vectors = random_vectors
+        normalized_vectors /= np.linalg.norm(random_vectors, axis=1, keepdims=True)  # Normalize vectors
+
+        # Apply the random vectors to the mesh points based on plate indices
+        for plate_index in range(self.num_plates):
+            mask = self.plate_indices == plate_index
+            self.mesh.points[mask, 0] += normalized_vectors[plate_index, 0]  # type: ignore # Apply X component
+            self.mesh.points[mask, 1] += normalized_vectors[plate_index, 1]  # type: ignore # Apply Y component
