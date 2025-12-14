@@ -157,7 +157,7 @@ class WorldGenerationEngine:
             world.metadata["pipeline_steps"] = pipeline
             world.metadata["created_at"] = start_time.isoformat()
             world.metadata["generation_time_seconds"] = (
-                datetime.now() - start_time
+                datetime.now(timezone.utc) - start_time
             ).total_seconds()
 
             if progress_callback:
@@ -262,7 +262,7 @@ class WorldGenerationEngine:
         Raises:
             PipelineExecutionError: If plugin execution fails
         """
-        plugin = self.plugins.get(plugin_name)
+        plugin = self.get_plugin(plugin_name)
         if not plugin:
             msg = f"Plugin '{plugin_name}' not found"
             raise PipelineExecutionError(msg)
@@ -354,7 +354,7 @@ class WorldGenerationEngine:
         graph = nx.DiGraph()
 
         for plugin_name in pipeline:
-            plugin = self.plugins.get(plugin_name)
+            plugin = self.get_plugin(plugin_name)
             if not plugin:
                 continue
 
@@ -385,7 +385,7 @@ class WorldGenerationEngine:
 
         # Check for missing dependencies
         for plugin_name in pipeline:
-            plugin = self.plugins.get(plugin_name)
+            plugin = self.get_plugin(plugin_name)
             if not plugin:
                 continue
 

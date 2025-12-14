@@ -96,10 +96,10 @@ async def main():
     print("─" * 70)
 
     params = WorldParameters(
-        name="Demo World Alpha",
-        recursion=5,  # 10,242 points
-        seed=12345,
-        ocean_percent=0.60,
+        name="Complex Lady",
+        recursion=9,  # 10,242 points
+        seed=42,
+        ocean_percent=0.70,
         zmax=8848,  # Everest height
         zmin=-11034,  # Mariana Trench depth
         zscale=25.0,

@@ -38,7 +38,7 @@ async def main():
     setup_event_logging()
 
     # Create engine
-    engine = WorldGenerationEngine(workers=4)
+    engine = WorldGenerationEngine(worker_count=4)
 
     # Register plugins
     print("\nRegistering plugins...")
@@ -50,10 +50,13 @@ async def main():
 
     # Define world parameters
     params = WorldParameters(
-        name="Example World",
-        recursion=5,  # Lower for faster generation
+        name="Basic Bitch",
+        recursion=9,  # Lower for faster generation
         seed=42,  # Fixed seed for reproducibility
-        ocean_percent=0.55,
+        ocean_percent=0.7,
+        zmax=8848,  # Everest height
+        zmin=-11034,  # Mariana Trench depth
+        zscale=25.0,
     )
 
     print(f"\nGenerating world: {params.name}")
