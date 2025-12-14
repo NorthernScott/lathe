@@ -9,6 +9,8 @@
 **/*password.txt
 outputs
 typings
+src-old
+src_old
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

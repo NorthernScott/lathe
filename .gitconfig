@@ -4,7 +4,7 @@
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
 [user]
-	name = NorthernScott
+	name = Scott Drennan
 	email = s.drennan@gmail.com
 	[user]
   signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL3wtyd6HNYr8/jR86ho0rP5pd74oZ+MNjiFPaMukPMk
